@@ -22,7 +22,6 @@
 import os, subprocess
 import glob
 import obspy
-from data_helper_functions import get_sens_offset
 
 #%%
 ########################
@@ -40,6 +39,7 @@ from data_helper_functions import get_sens_offset
 input_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/raw/F81_AF0/'  	#input directory for CUBE files
 temp_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/temp/'			#temporary directory for CUBE/miniseed files
 output_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/mseed/'			#output directory for miniseed files
+drct='/Users/dfee/repos/cubeconversion/'	#repository directory for location of digitizer and sensor text files (just put this in module maybe?) 
 
 station_code = 'F81'				# change for each digitizer-sensor combo; 4 characters
 sensor = 'SN51'
@@ -54,7 +54,33 @@ trace_duration = 'HOUR'        		#'HOUR' is standard, other valid lengths can be
 digitizer = input_directory[-4:-1]
 #digitizer = 'AEX'
 
-sens,offset_val = get_sens_offset(digitizer,sensor)     #get the sensitivty and digitizer offset
+def get_sens_offset(drct,digitizer,sensor):
+########################################################################
+# Obtain the sensor sensitivity and digitizer offset automatically ###
+# Each  cube-sensor configuration has unique offset voltage
+########################################################################
+    import numpy as np
+    digitizer_data = np.genfromtxt(drct+'digitizers.txt', dtype='str')
+    sensor_data = np.genfromtxt(drct+'sensors.txt', dtype='str')
+    
+    # Loop through to get digitizer offset
+    UAF_digitizers = ['AEX', 'AEY','AF0', 'AF1', 'AF2', 'AF3', 'AS0', 'AT7']
+    if digitizer in UAF_digitizers:
+        dig_index, a = np.where(digitizer_data == digitizer)
+        dig_index = int(np.asarray(dig_index))
+        offset_val = float(digitizer_data[dig_index,1])
+    else:
+        offset_val = -0.015
+        print('No matching offset values, using default!')
+
+    # Loop through to get sensor sensitivity
+    sens_index, a = np.where(sensor_data == sensor)
+    sens_index = int(np.asarray(sens_index))
+    sens = float(sensor_data[sens_index,1])
+
+    return sens,offset_val
+
+sens,offset_val = get_sens_offset(drct,digitizer,sensor)     #get the unique sensitivty and digitizer offset
 #sens = .0090
 #offset_val = -0.01668703028331012549
 #sens = sens/4.5
@@ -64,6 +90,7 @@ calib = bweight/sens
 
 #reverse polarity list for 2016 Yasur deployment only!
 reverse_polarity_list = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6', 'YIFA', 'YIFB', 'YIFC', 'YIFD']
+
 
 #%%
 #############################
@@ -125,6 +152,7 @@ for file in cut_file_list:
 
 	# Rename the cut files according to the channel number and placed in output directory
 	subprocess.call(['mseedrename', '--verbose', '--template=' + name_template, '--include-pattern=' + channel_pattern, '--transfer-mode=MOVE', '--output-dir=' + output_directory, file])
+
 
 
 
