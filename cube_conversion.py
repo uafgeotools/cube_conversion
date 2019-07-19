@@ -39,7 +39,7 @@ import obspy
 input_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/raw/F81_AF0/'  	#input directory for CUBE files
 temp_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/temp/'			#temporary directory for CUBE/miniseed files
 output_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/mseed/'			#output directory for miniseed files
-drct='/Users/dfee/repos/cubeconversion/'	#repository directory for location of digitizer and sensor text files (just put this in module maybe?) 
+drct='/Users/dfee/repos/cubeconversion/'	#repository directory for location of digitizer and sensor text files (just put this in module maybe?)
 
 station_code = 'F81'				# change for each digitizer-sensor combo; 4 characters
 sensor = 'SN51'
@@ -62,7 +62,7 @@ def get_sens_offset(drct,digitizer,sensor):
     import numpy as np
     digitizer_data = np.genfromtxt(drct+'digitizers.txt', dtype='str')
     sensor_data = np.genfromtxt(drct+'sensors.txt', dtype='str')
-    
+
     # Loop through to get digitizer offset
     UAF_digitizers = ['AEX', 'AEY','AF0', 'AF1', 'AF2', 'AF3', 'AS0', 'AT7']
     if digitizer in UAF_digitizers:
@@ -116,7 +116,7 @@ for ftmp in infiles:
     print(ftmp)
     subprocess.call(['cube2mseed', '--verbose', '--resample=SINC', '--output-dir=' + temp_directory, ftmp])
 #subprocess.call(['cube2mseed', '--verbose', '--resample=SINC', '--output-dir=' + temp_directory, input_directory])
-    
+
 full_file_list = glob.glob(temp_directory + "*")
 print('Done')
 # Cut the converted file into smaller traces (e.g. hour)
@@ -124,7 +124,7 @@ subprocess.call(['mseedcut', '--verbose', '--output-dir=' + temp_directory, '--f
 
 # Remove the day files from the temporary directory before remaning the files
 for file in full_file_list:
-	os.remove(file)	
+	os.remove(file)
 
 # Loop through each cut file and assign the channel number
 # This section will edit the simple metadata
@@ -145,18 +145,18 @@ for file in cut_file_list:
 		tr.data = tr.data * -1
 	if file.endswith('.pri0'):
 		location_id = '01'					# channel 1
-		channel_pattern = '*.pri0'	
-		tr.stats.location = location_id				
+		channel_pattern = '*.pri0'
+		tr.stats.location = location_id
 	elif file.endswith('.pri1'):
 		location_id = '02'					# channel 2
-		channel_pattern = '*.pri1'	
-		tr.stats.location = location_id	
+		channel_pattern = '*.pri1'
+		tr.stats.location = location_id
 	elif file.endswith('.pri2'):
 		location_id = '03'					# channel 3
-		channel_pattern = '*.pri2'	
-		tr.stats.location = location_id		
+		channel_pattern = '*.pri2'
+		tr.stats.location = location_id
 	else:
-		print ('Error')	
+		print ('Error')
 	st.write(file, format="mseed")
 
 	# This is the template for the seed naming scheme
@@ -164,7 +164,3 @@ for file in cut_file_list:
 
 	# Rename the cut files according to the channel number and placed in output directory
 	subprocess.call(['mseedrename', '--verbose', '--template=' + name_template, '--include-pattern=' + channel_pattern, '--transfer-mode=MOVE', '--output-dir=' + output_directory, file])
-
-
-
-
