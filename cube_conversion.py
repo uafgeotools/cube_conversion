@@ -36,10 +36,10 @@ import obspy
 #AS0: SI06, SN73
 #AT7: SI07, SN74
 
-input_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/raw/F81_AF0/'  	#input directory for CUBE files
-temp_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/temp/'			#temporary directory for CUBE/miniseed files
-output_directory = '/Users/dfee/Documents/kilauea/erz2018/campaign/data/mseed/'			#output directory for miniseed files
-drct='/Users/dfee/repos/cubeconversion/'	#repository directory for location of digitizer and sensor text files (just put this in module maybe?)
+input_directory = '/Users/ldtoney/repos/cubeconversion/F81_AF0/'  # Input directory for CUBE files
+temp_directory = '/Users/ldtoney/repos/cubeconversion/data/temp/'  # Temporary directory for CUBE/miniseed files
+output_directory = '/Users/ldtoney/repos/cubeconversion/data/mseed/'  # Output directory for miniseed files
+drct='/Users/ldtoney/repos/cubeconversion/'  # Repository directory for location of digitizer and sensor text files (just put this in module maybe?)
 
 station_code = 'F81'				# change for each digitizer-sensor combo; 4 characters
 sensor = 'SN51'
