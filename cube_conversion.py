@@ -1,95 +1,86 @@
-###############################################################################################################
-# Authors: Alex Iezzi, David Fee, Kathleen McKee
-# Contact: amiezzi@alaska.edu, dfee1@alaska.edu
-# Geophysical Institute: University of Alaska Fairbanks
-# Created: 03-Feb-2016
-# Last Revision: 04-June-2019
-################################################################################################################
-# This code converts the UAF infrasound group DATA-CUBE files into miniseed files of a desired length of time with specified name
-# Output minseed data are ready for IRIS upload (although maybe we shouldn't apply the calib?...future change)
-# The current version of the code runs for all files in a given digitizer folder
-# Code can differentiate between channels
-# The temp_directory should be empty and will be used as a work environment
-# Add gipptools-2015.225/bin (or newer) path your bash profile before running this code
-# gipptools available currently at: https://www.gfz-potsdam.de/en/section/geophysical-deep-sounding/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/
-# Within gipptools, the code calls: cube2mseed, mseedcut, and mseedrename
-################################################################################################################
+"""
+cube_conversion.py
 
-#%%
-##############################
-### Import necessary modules ###
-##############################
-import os, subprocess
+Authors: Alex Iezzi (amiezzi@alaska.edu),
+         David Fee (dfee1@alaska.edu),
+         Kathleen McKee,
+         Liam Toney (ldtoney@alaska.edu)
+
+Geophysical Institute, University of Alaska Fairbanks
+
+This code converts the UAF infrasound group DATA-CUBE files into miniseed files
+of a desired length of time with specified name. Output minseed data are ready
+for IRIS upload (although maybe we shouldn't apply the calib?...future change).
+The current version of the code runs for all files in a given digitizer folder.
+Code can differentiate between channels. The temp_directory should be empty and
+will be used as a work environment. Add gipptools-2015.225/bin (or newer) path
+to your bash profile before running this code. Within gipptools, the code
+calls: cube2mseed, mseedcut, and mseedrename. gipptools available currently at:
+
+https://www.gfz-potsdam.de/en/section/geophysical-deep-sounding/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/
+"""
+
+import os
+import subprocess
 import glob
 import obspy
+import json
 
-#%%
-########################
-### INPUT PARAMETERS ###
-########################
+# ----------------
+# INPUT PARAMETERS
+# ----------------
 
-#AEX: SI01, SN49
-#AEY: SI02, SN50
-#AF0: SI03, SN51%SN48?
-#AF1: SI04, SN48
-#AF2: SI05, SN47
-#AS0: SI06, SN73
-#AT7: SI07, SN74
+# Input directory for CUBE files
+INPUT_DIR = '/Users/ldtoney/repos/cubeconversion/F81_AF0'
 
-input_directory = '/Users/ldtoney/repos/cubeconversion/F81_AF0/'  # Input directory for CUBE files
-temp_directory = '/Users/ldtoney/repos/cubeconversion/data/temp/'  # Temporary directory for CUBE/miniseed files
-output_directory = '/Users/ldtoney/repos/cubeconversion/data/mseed/'  # Output directory for miniseed files
-drct='/Users/ldtoney/repos/cubeconversion/'  # Repository directory for location of digitizer and sensor text files (just put this in module maybe?)
+# Temporary directory for CUBE/miniseed files
+TEMP_DIR = '/Users/ldtoney/repos/cubeconversion/data/temp'
 
-station_code = 'F81'				# change for each digitizer-sensor combo; 4 characters
-sensor = 'SN51'
+# Output directory for miniseed files
+OUTPUT_DIR = '/Users/ldtoney/repos/cubeconversion/data/mseed'
 
-network_code = 'HV'					#seed network constant for each experiment; 2 characters
-channel_code = 'DDF'				#seed-compliant channel code (e.g. BDF, high broadband (80<=samplerate<250 Hz), instrument code, infrasound); 3 characters
+# Location of digitizers.json and sensors.json
+METADATA_DIR = '/Users/ldtoney/repos/cubeconversion'
 
-trace_duration = 'HOUR'        		#'HOUR' is standard, other valid lengths can be used for the 'mseedcut' tool; see documentation
+SENSOR = 'SN51'
+DIGITIZER = 'AFO'
 
-#%%
-#some prelminary conversion stuff
-digitizer = input_directory[-4:-1]
-#digitizer = 'AEX'
+NETWORK_CODE = 'HV'   # SEED network code (constant for each experiment)
+STATION_CODE = 'F81'  # SEED station code (change for each digitizer-sensor combo)
+CHANNEL_CODE = 'DDF'  # SEED-compliant channel code (e.g. BDF, HDF, etc.)
 
-def get_sens_offset(drct,digitizer,sensor):
-########################################################################
-# Obtain the sensor sensitivity and digitizer offset automatically ###
-# Each  cube-sensor configuration has unique offset voltage
-########################################################################
-    import numpy as np
-    digitizer_data = np.genfromtxt(drct+'digitizers.txt', dtype='str')
-    sensor_data = np.genfromtxt(drct+'sensors.txt', dtype='str')
+TRACE_DUR = 'HOUR'  # 'HOUR' is standard; other valid lengths can be used for
+                    # the 'mseedcut' tool - see documentation
 
-    # Loop through to get digitizer offset
-    UAF_digitizers = ['AEX', 'AEY','AF0', 'AF1', 'AF2', 'AF3', 'AS0', 'AT7']
-    if digitizer in UAF_digitizers:
-        dig_index, a = np.where(digitizer_data == digitizer)
-        dig_index = int(np.asarray(dig_index))
-        offset_val = float(digitizer_data[dig_index,1])
-    else:
-        offset_val = -0.015
-        print('No matching offset values, using default!')
+BITWEIGHT = 2.44140625e-7  # [V/ct]
 
-    # Loop through to get sensor sensitivity
-    sens_index, a = np.where(sensor_data == sensor)
-    sens_index = int(np.asarray(sens_index))
-    sens = float(sensor_data[sens_index,1])
+DEFAULT_OFFSET = -0.015  # [V] Default digitizer offset
 
-    return sens,offset_val
+# Reverse polarity list for 2016 Yasur deployment only!
+REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
+                         'YIFA', 'YIFB', 'YIFC', 'YIFD']
 
-sens,offset_val = get_sens_offset(drct,digitizer,sensor)     #get the unique sensitivty and digitizer offset
-#sens = .0090
-#offset_val = -0.01668703028331012549
-#sens = sens/4.5
-bweight = 2.44140625e-7 			# Bitweight in V/ct
-#bweight = 2.4064533177e-7 			# Bitweight in V/ct; from Jay's measurements
-calib = bweight/sens
+# ----------------------------
+# PRELIMINARY CONVERSION STUFF
+# ----------------------------
 
-#reverse polarity list for 2016 Yasur deployment only!
-reverse_polarity_list = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6', 'YIFA', 'YIFB', 'YIFC', 'YIFD']
+# Sensor sensitivities in Pa/V(?)
+with open(os.path.join(METADATA_DIR, 'sensors.json')) as f:
+    sensitivities = json.load(f)
+sensitivity = sensitivities[SENSOR]
+
+# Digitizer offsets in V
+with open(os.path.join(METADATA_DIR, 'digitizers.json')) as f:
+    digitizer_offsets = json.load(f)
+try:
+    offset = digitizer_offsets[DIGITIZER]
+except KeyError:
+    print(f'No matching offset values. Using default of {DEFAULT_OFFSET} V.')
+    offset = DEFAULT_OFFSET
+
+
+
+
 
 
 #%%
@@ -98,57 +89,56 @@ reverse_polarity_list = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6', 'YIFA',
 #############################
 # Convert the raw file to day long files into the temporary directory
 print('Running cube2mseed on raw files...')
-infiles= glob.glob(input_directory + "*/*")
+infiles= glob.glob(INPUT_DIR + "*/*")
 print('Found %d files' % len(infiles))
 for ftmp in infiles:
     print(ftmp)
-    subprocess.call(['cube2mseed', '--verbose', '--resample=SINC', '--output-dir=' + temp_directory, ftmp])
+    subprocess.call(['cube2mseed', '--verbose', '--resample=SINC', '--output-dir=' + TEMP_DIR, ftmp])
 #subprocess.call(['cube2mseed', '--verbose', '--resample=SINC', '--output-dir=' + temp_directory, input_directory])
 
-full_file_list = glob.glob(temp_directory + "*")
+full_file_list = glob.glob(TEMP_DIR + "*")
 print('Done')
 # Cut the converted file into smaller traces (e.g. hour)
-subprocess.call(['mseedcut', '--verbose', '--output-dir=' + temp_directory, '--file-length=' + trace_duration, temp_directory])
+subprocess.call(['mseedcut', '--verbose', '--output-dir=' + TEMP_DIR, '--file-length=' + TRACE_DUR, TEMP_DIR])
 
 # Remove the day files from the temporary directory before remaning the files
 for file in full_file_list:
-	os.remove(file)
+    os.remove(file)
 
 # Loop through each cut file and assign the channel number
 # This section will edit the simple metadata
 # This part of the code can automatically distinguish between a 3 element array or single sensor
 print('Adding metadata to miniseed files')
-cut_file_list = glob.glob(temp_directory + "*")
+cut_file_list = glob.glob(TEMP_DIR + "*")
 for file in cut_file_list:
-	st = obspy.read(file)
-	tr = st[0]
-	tr.stats.station = station_code
-	tr.stats.network = network_code
-	tr.stats.channel = channel_code
-	#tr.data = tr.data * calib
-	tr.data = tr.data * bweight
-	tr.data = tr.data + offset_val     #remove voltage offset
-	tr.data = tr.data / sens
-	if station_code in reverse_polarity_list:
-		tr.data = tr.data * -1
-	if file.endswith('.pri0'):
-		location_id = '01'					# channel 1
-		channel_pattern = '*.pri0'
-		tr.stats.location = location_id
-	elif file.endswith('.pri1'):
-		location_id = '02'					# channel 2
-		channel_pattern = '*.pri1'
-		tr.stats.location = location_id
-	elif file.endswith('.pri2'):
-		location_id = '03'					# channel 3
-		channel_pattern = '*.pri2'
-		tr.stats.location = location_id
-	else:
-		print ('Error')
-	st.write(file, format="mseed")
+    st = obspy.read(file)
+    tr = st[0]
+    tr.stats.station = STATION_CODE
+    tr.stats.network = NETWORK_CODE
+    tr.stats.channel = CHANNEL_CODE
+    tr.data = tr.data * BITWEIGHT  # Convert from counts to V
+    tr.data = tr.data + offset  # Remove voltage offset
+    tr.data = tr.data / sensitivity  # Convert from V to Pa
+    if STATION_CODE in REVERSE_POLARITY_LIST:
+        tr.data = tr.data * -1
+    if file.endswith('.pri0'):
+        location_id = '01'                    # channel 1
+        channel_pattern = '*.pri0'
+        tr.stats.location = location_id
+    elif file.endswith('.pri1'):
+        location_id = '02'                    # channel 2
+        channel_pattern = '*.pri1'
+        tr.stats.location = location_id
+    elif file.endswith('.pri2'):
+        location_id = '03'                    # channel 3
+        channel_pattern = '*.pri2'
+        tr.stats.location = location_id
+    else:
+        print ('Error')
+    st.write(file, format="mseed")
 
-	# This is the template for the seed naming scheme
-	name_template = network_code + '.' + station_code + '.' + location_id + '.' + channel_code + '.' + '%Y.%j.%H'
+    # This is the template for the seed naming scheme
+    name_template = NETWORK_CODE + '.' + STATION_CODE + '.' + location_id + '.' + CHANNEL_CODE + '.' + '%Y.%j.%H'
 
-	# Rename the cut files according to the channel number and placed in output directory
-	subprocess.call(['mseedrename', '--verbose', '--template=' + name_template, '--include-pattern=' + channel_pattern, '--transfer-mode=MOVE', '--output-dir=' + output_directory, file])
+    # Rename the cut files according to the channel number and placed in output directory
+    subprocess.call(['mseedrename', '--verbose', '--template=' + name_template, '--include-pattern=' + channel_pattern, '--transfer-mode=MOVE', '--output-dir=' + OUTPUT_DIR, file])
