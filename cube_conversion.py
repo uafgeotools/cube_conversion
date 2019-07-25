@@ -148,4 +148,4 @@ for file in cut_file_list:
                     '--transfer-mode=MOVE', f'--output-dir={OUTPUT_DIR}',
                     file])
 
-    print('Done')
+print('Done')
