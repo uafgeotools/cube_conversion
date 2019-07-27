@@ -32,23 +32,28 @@ import json
 # ----------------
 
 # Input directory for CUBE files
-INPUT_DIR = '/Users/ldtoney/repos/cubeconversion/F81_AF0'
+INPUT_DIR = '/Users/ldtoney/Downloads/cube_data/2019-07-25_dump/CUBE3_AT7/190720'
 
 # Temporary directory for CUBE/miniseed files
-TEMP_DIR = '/Users/ldtoney/repos/cubeconversion/data/temp'
+TEMP_DIR = '/Users/ldtoney/Downloads/cube_data/converted/tmp'
 
-# Output directory for miniseed files
-OUTPUT_DIR = '/Users/ldtoney/repos/cubeconversion/data/mseed'
+# Output directory for miniseed file
+OUTPUT_DIR = '/Users/ldtoney/Downloads/cube_data/converted/miniseed'
 
 # Location of digitizers.json and sensors.json
 METADATA_DIR = '/Users/ldtoney/repos/cubeconversion'
 
-SENSOR = 'SN51'
-DIGITIZER = 'AF0'
+# Load digitizer-sensor pairings file
+with open('/Users/ldtoney/Downloads/cube_data/digitizer_sensor_pairs.json') as f:
+    digitizer_sensor_pairs = json.load(f)
 
-NETWORK_CODE = 'HV'   # SEED network code (constant for each experiment)
-STATION_CODE = 'F81'  # SEED station code (change for each digitizer-sensor combo)
-CHANNEL_CODE = 'DDF'  # SEED-compliant channel code (e.g. BDF, HDF, etc.)
+DIGITIZER = 'AEY'
+SENSOR = digitizer_sensor_pairs[DIGITIZER]
+
+NETWORK_CODE = 'AV'    # SEED network code (constant for each experiment)
+STATION_CODE = 'GAIA'  # SEED station code (change for each digitizer-sensor combo)
+CHANNEL_CODE = 'DDF'   # SEED channel code (e.g. BDF, HDF, etc.)
+LOCATION_CODE = '04'   # SEED location code (if None, choose automatically)
 
 TRACE_DUR = 'HOUR'  # 'HOUR' is standard; other valid lengths can be used for
                     # the 'mseedcut' tool - see documentation
@@ -91,7 +96,7 @@ except KeyError:
 
 # Convert raw files to day-long files in the temporary directory
 print('Running cube2mseed on raw files...')
-raw_files = glob.glob(os.path.join(INPUT_DIR, '*/*'))
+raw_files = glob.glob(os.path.join(INPUT_DIR, '*'))
 print(f'Found {len(raw_files)} raw file(s).')
 for tmp_file in raw_files:
     print(tmp_file)
@@ -120,23 +125,31 @@ for file in cut_file_list:
     tr.stats.network = NETWORK_CODE
     tr.stats.station = STATION_CODE
     tr.stats.channel = CHANNEL_CODE
-    tr.data = tr.data * BITWEIGHT  # Convert from counts to V
-    tr.data = tr.data + offset  # Remove voltage offset
+    tr.data = tr.data * BITWEIGHT    # Convert from counts to V
+    tr.data = tr.data + offset       # Remove voltage offset
     tr.data = tr.data / sensitivity  # Convert from V to Pa
     if STATION_CODE in REVERSE_POLARITY_LIST:
         tr.data = tr.data * -1
-    if file.endswith('.pri0'):    # Channel 1
-        location_id = '01'
-        channel_pattern = '*.pri0'
-    elif file.endswith('.pri1'):  # Channel 2
-        location_id = '02'
-        channel_pattern = '*.pri1'
-    elif file.endswith('.pri2'):  # Channel 3
-        location_id = '03'
-        channel_pattern = '*.pri2'
+
+    # If no location code was provided, choose one automatically
+    if not LOCATION_CODE:
+        if file.endswith('.pri0'):    # Channel 1
+            location_id = '01'
+            channel_pattern = '*.pri0'
+        elif file.endswith('.pri1'):  # Channel 2
+            location_id = '02'
+            channel_pattern = '*.pri1'
+        elif file.endswith('.pri2'):  # Channel 3
+            location_id = '03'
+            channel_pattern = '*.pri2'
+        else:
+            raise ValueError('File ending not understood.')
+    # Otherwise, use explicitly provided code
     else:
-        raise ValueError('File ending not understood.')
+        location_id = LOCATION_CODE
+        channel_pattern = '*.pri0'  # Or just use '*' here for all files?
     tr.stats.location = location_id
+
     st.write(file, format='MSEED')
 
     # This is the template for the seed naming scheme
