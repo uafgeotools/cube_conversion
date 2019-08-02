@@ -21,39 +21,37 @@ gipptools available currently at:
 https://www.gfz-potsdam.de/en/section/geophysical-deep-sounding/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/
 """
 
+import sys
 import os
 import subprocess
 import glob
 import obspy
 import json
+import numpy as np
 
-# ----------------
+if len(sys.argv) is not 2:
+    sys.exit('You must specify exactly one input file.')
+file = sys.argv[1]
+
+# -----------------------------------------------------------------------------
 # INPUT PARAMETERS
-# ----------------
-
-# Input directory for CUBE files
-INPUT_DIR = '/Users/ldtoney/Downloads/cube_data/2019-07-25_dump/CUBE3_AT7/190720'
-
-# Temporary directory for CUBE/miniseed files
-TEMP_DIR = '/Users/ldtoney/Downloads/cube_data/converted/tmp'
-
-# Output directory for miniseed file
-OUTPUT_DIR = '/Users/ldtoney/Downloads/cube_data/converted/miniseed'
-
-# Location of digitizers.json and sensors.json
-METADATA_DIR = '/Users/ldtoney/repos/cubeconversion'
-
-# Load digitizer-sensor pairings file
-with open('/Users/ldtoney/Downloads/cube_data/digitizer_sensor_pairs.json') as f:
-    digitizer_sensor_pairs = json.load(f)
-
-DIGITIZER = 'AEY'
-SENSOR = digitizer_sensor_pairs[DIGITIZER]
-
+# -----------------------------------------------------------------------------
+INPUT_DIR = '/Users/ldtoney/Downloads/cube_data/2019-07-25_dump/CUBE3_AEX/190720'  # Input directory for CUBE files (SAME digitizer)
+OUTPUT_DIR = '/Users/ldtoney/Downloads/test'  # Output directory for miniseed files
 NETWORK_CODE = 'AV'    # SEED network code (constant for each experiment)
 STATION_CODE = 'GAIA'  # SEED station code (change for each digitizer-sensor combo)
+LOCATION_CODE = '04'   # SEED location code (if 'auto', choose automatically)
 CHANNEL_CODE = 'DDF'   # SEED channel code (e.g. BDF, HDF, etc.)
-LOCATION_CODE = '04'   # SEED location code (if None, choose automatically)
+# -----------------------------------------------------------------------------
+INPUT_DIR = sys.argv[1]  # Input directory for CUBE files (SAME digitizer)
+OUTPUT_DIR = sys.argv[2]  # Output directory for miniseed files
+NETWORK_CODE = sys.argv[3]  # SEED network code (constant for each experiment)
+STATION_CODE = sys.argv[4]  # SEED station code (change for each digitizer-sensor combo)
+LOCATION_CODE = sys.argv[5] # SEED location code (if 'auto', choose automatically)
+CHANNEL_CODE = sys.argv[6]  # SEED channel code (e.g. BDF, HDF, etc.)
+# -----------------------------------------------------------------------------
+
+print.sys.argv()
 
 TRACE_DUR = 'HOUR'  # 'HOUR' is standard; other valid lengths can be used for
                     # the 'mseedcut' tool - see documentation
@@ -63,32 +61,30 @@ BITWEIGHT = 2.44140625e-7  # [V/ct]
 DEFAULT_SENSITIVITY = 0.009  # [V/Pa] <-- I think? Default sensor sensitivity
 DEFAULT_OFFSET = -0.015      # [V] Default digitizer offset
 
+# List of valid miniseed location codes
+ACCEPTED_LOCATION_CODES = ['01', '02', '03', '04', '05', '06', '07', '08']
+
 # Reverse polarity list for 2016 Yasur deployment only!
 REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
                          'YIFA', 'YIFB', 'YIFC', 'YIFD']
 
-# ----------------------------
-# PRELIMINARY CONVERSION STUFF
-# ----------------------------
+tmp_dir = os.path.join(OUTPUT_DIR, 'tmp')
+if not os.path.exists(tmp_dir):
+    os.makedirs(tmp_dir)
 
-# Sensor sensitivities in V/Pa(?)
-with open(os.path.join(METADATA_DIR, 'sensors.json')) as f:
+script_dir = os.path.dirname(__file__)
+
+# Load digitizer-sensor pairings file
+with open(os.path.join(script_dir, 'digitizer_sensor_pairs.json')) as f:
+    digitizer_sensor_pairs = json.load(f)
+
+# Load sensor sensitivities in V/Pa(?)
+with open(os.path.join(script_dir, 'sensor_sensitivities.json')) as f:
     sensitivities = json.load(f)
-try:
-    sensitivity = sensitivities[SENSOR]
-except KeyError:
-    print(f'No matching sensitivities. Using default of {DEFAULT_SENSITIVITY} '
-          f'V/Pa.')
-    sensitivity = DEFAULT_SENSITIVITY
 
-# Digitizer offsets in V
-with open(os.path.join(METADATA_DIR, 'digitizers.json')) as f:
+# Load digitizer offsets in V
+with open(os.path.join(script_dir, 'digitizer_offsets.json')) as f:
     digitizer_offsets = json.load(f)
-try:
-    offset = digitizer_offsets[DIGITIZER]
-except KeyError:
-    print(f'No matching offset values. Using default of {DEFAULT_OFFSET} V.')
-    offset = DEFAULT_OFFSET
 
 # ------------------------
 # CONVERT TO MSEED FILE(S)
@@ -97,18 +93,40 @@ except KeyError:
 # Convert raw files to day-long files in the temporary directory
 print('Running cube2mseed on raw files...')
 raw_files = glob.glob(os.path.join(INPUT_DIR, '*'))
+extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
+if len(extensions) is not 1:
+    raise ValueError(f'Files from multiple digitizers found: {extensions}')
+
+digitizer = extensions[0]
+sensor = digitizer_sensor_pairs[digitizer]
+
+# Get digitizer offset
+try:
+    offset = digitizer_offsets[digitizer]
+except KeyError:
+    print(f'No matching offset values. Using default of {DEFAULT_OFFSET} V.')
+    offset = DEFAULT_OFFSET
+
+# Get sensor sensitivity
+try:
+    sensitivity = sensitivities[sensor]
+except KeyError:
+    print(f'No matching sensitivities. Using default of {DEFAULT_SENSITIVITY} '
+          f'V/Pa.')
+    sensitivity = DEFAULT_SENSITIVITY
+
 print(f'Found {len(raw_files)} raw file(s).')
 for tmp_file in raw_files:
     print(tmp_file)
     subprocess.run(['cube2mseed', '--verbose', '--resample=SINC',
-                    f'--output-dir={TEMP_DIR}', tmp_file])
+                    f'--output-dir={tmp_dir}', tmp_file])
 
 # Create list of all day-long files
-day_file_list = glob.glob(os.path.join(TEMP_DIR, '*'))
+day_file_list = glob.glob(os.path.join(tmp_dir, '*'))
 
 # Cut the converted day-long files into smaller traces (e.g. hour)
-subprocess.run(['mseedcut', '--verbose', f'--output-dir={TEMP_DIR}',
-                f'--file-length={TRACE_DUR}', TEMP_DIR])
+subprocess.run(['mseedcut', '--verbose', f'--output-dir={tmp_dir}',
+                f'--file-length={TRACE_DUR}', tmp_dir])
 
 # Remove the day-long files from the temporary directory
 for file in day_file_list:
@@ -118,7 +136,7 @@ for file in day_file_list:
 # metadata (automatically distinguish between a 3-element array or single
 # sensor)
 print('Adding metadata to miniseed files...')
-cut_file_list = glob.glob(os.path.join(TEMP_DIR, '*'))
+cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
 for file in cut_file_list:
     st = obspy.read(file)
     tr = st[0]
@@ -132,7 +150,7 @@ for file in cut_file_list:
         tr.data = tr.data * -1
 
     # If no location code was provided, choose one automatically
-    if not LOCATION_CODE:
+    if LOCATION_CODE == 'auto':
         if file.endswith('.pri0'):    # Channel 1
             location_id = '01'
             channel_pattern = '*.pri0'
@@ -145,9 +163,13 @@ for file in cut_file_list:
         else:
             raise ValueError('File ending not understood.')
     # Otherwise, use explicitly provided code
-    else:
+    elif LOCATION_CODE in ACCEPTED_LOCATION_CODES:
         location_id = LOCATION_CODE
         channel_pattern = '*.pri0'  # Or just use '*' here for all files?
+    # Raise error for bogus code?
+    else:
+        raise ValueError(f'Location code \'{LOCATION_CODE}\' is non-standard. '
+                         'Try again.')
     tr.stats.location = location_id
 
     st.write(file, format='MSEED')
