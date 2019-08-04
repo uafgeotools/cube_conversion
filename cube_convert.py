@@ -32,10 +32,8 @@ import obspy
 import json
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
 import warnings
-
-# warnings.filterwarnings(action='ignore', message='The encoding')
-# warnings.filterwarnings(action='ignore', message='Record contains')
 
 # -----------------------------------------------------------------------------
 # Advanced configuration options
@@ -54,21 +52,21 @@ REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
 # -----------------------------------------------------------------------------
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to miniSEED while trimming and renaming.')
-parser.add_argument('input_dir', type=str,
+parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to miniSEED while trimming and renaming.',
+                                 allow_abbrev=False)
+parser.add_argument('input_dir', metavar='input-dir',
                     help='input directory for DATA-CUBE files')
-parser.add_argument('output_dir', type=str,
+parser.add_argument('output_dir', metavar='output-dir',
                     help='output directory for miniSEED files')
-parser.add_argument('network', type=str,
-                    help='SEED network code')
-parser.add_argument('station', type=str,
-                    help='SEED station code')
-parser.add_argument('location', type=str,
+parser.add_argument('network', help='SEED network code')
+parser.add_argument('station', help='SEED station code')
+parser.add_argument('location',
                     help='SEED location code (if AUTO, choose automatically)')
-parser.add_argument('channel', type=str,
-                    help='SEED channel code (e.g. BDF, HDF, etc.)')
+parser.add_argument('channel', help='SEED channel code (e.g. BDF, HDF, etc.)')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
+parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
+                    help='extract coordinates from digitizer GPS')
 input_args = parser.parse_args()
 
 # Create temporary processing directory in the output directory
@@ -91,10 +89,11 @@ with open(os.path.join(script_dir, 'sensor_sensitivities.json')) as f:
 with open(os.path.join(script_dir, 'digitizer_offsets.json')) as f:
     digitizer_offsets = json.load(f)
 
-print('----------------------------------------------------------------------')
+print('------------------------------------------------------------------')
 print('Beginning conversion process...')
-print('----------------------------------------------------------------------')
+print('------------------------------------------------------------------')
 
+# Print requested metadata
 print(f'Network code: {input_args.network}')
 print(f'Station code: {input_args.station}')
 if input_args.location == 'AUTO':
@@ -110,6 +109,7 @@ extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
 if len(extensions) is not 1:
     raise ValueError(f'Files from multiple digitizers found: {extensions}')
 
+# Automatically grab digitizer and sensor for this file
 digitizer = extensions[0]
 sensor = digitizer_sensor_pairs[digitizer]
 
@@ -129,16 +129,18 @@ except KeyError:
                   f'{DEFAULT_SENSITIVITY} V/Pa.')
     sensitivity = DEFAULT_SENSITIVITY
 
+# Print digitizer and sensor info
 print(f'Digitizer: {digitizer} (offset = {offset} V)')
 print(f'Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
 
-print('----------------------------------------------------------------------')
+# Convert the DATA-CUBE files to miniSEED
+print('------------------------------------------------------------------')
 print(f'Running cube2mseed on {len(raw_files)} raw file(s)...')
-print('----------------------------------------------------------------------')
-for tmp_file in raw_files:
-    print(os.path.basename(tmp_file))
+print('------------------------------------------------------------------')
+for raw_file in raw_files:
+    print(os.path.basename(raw_file))
     args = ['cube2mseed', '--resample=SINC', f'--output-dir={tmp_dir}',
-            tmp_file]
+            raw_file]
     if input_args.verbose:
         args.append('--verbose')
     subprocess.call(args)
@@ -146,10 +148,10 @@ for tmp_file in raw_files:
 # Create list of all day-long files
 day_file_list = glob.glob(os.path.join(tmp_dir, '*'))
 
-# Cut the converted day-long files into smaller traces (e.g. hour)
-print('----------------------------------------------------------------------')
+# Cut the converted day-long files into smaller traces (e.g. hour-long)
+print('------------------------------------------------------------------')
 print('Running mseedcut on converted miniSEED files...')
-print('----------------------------------------------------------------------')
+print('------------------------------------------------------------------')
 args = ['mseedcut', f'--output-dir={tmp_dir}', f'--file-length={TRACE_DUR}',
         tmp_dir]
 if input_args.verbose:
@@ -164,9 +166,9 @@ for file in day_file_list:
 # metadata (automatically distinguish between a 3-element array or single
 # sensor)
 cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
-print('----------------------------------------------------------------------')
+print('------------------------------------------------------------------')
 print(f'Adding metadata to {len(cut_file_list)} miniSEED file(s)...')
-print('----------------------------------------------------------------------')
+print('------------------------------------------------------------------')
 for file in cut_file_list:
     print(os.path.basename(file))
     st = obspy.read(file)
@@ -179,6 +181,7 @@ for file in cut_file_list:
     tr.data = tr.data / sensitivity  # Convert from V to Pa
     if input_args.station in REVERSE_POLARITY_LIST:
         tr.data = tr.data * -1
+    tr.stats.mseed.encoding = 'FLOAT64'
 
     # If no location code was provided, choose one automatically
     if input_args.location == 'AUTO':
@@ -206,13 +209,105 @@ for file in cut_file_list:
     name_template = f'{input_args.network}.{input_args.station}.{location_id}.{input_args.channel}.%Y.%j.%H'
 
     # Rename cut files and place in output directory
-    args = ['mseedrename', f'--template={name_template}',
+    args = ['mseedrename', f'--template={name_template}', '--force-overwrite',
             f'--include-pattern={channel_pattern}', '--transfer-mode=MOVE',
             f'--output-dir={input_args.output_dir}', file]
     if input_args.verbose:
         args.append('--verbose')
     subprocess.call(args)
 
-print('----------------------------------------------------------------------')
+# Extract digitizer GPS coordinates if requested
+if input_args.grab_gps:
+    print('------------------------------------------------------------------')
+    print(f'Extracting and reducing GPS data for {len(raw_files)} raw file(s)...')
+    print('------------------------------------------------------------------')
+
+    # Create containers for coords
+    lat, lon, elev = [], [], []
+
+    # Loop over all raw files in input directory
+    for raw_file in raw_files:
+
+        args = ['cubeinfo', '--format=GPS', f'--output-dir={tmp_dir}',
+                raw_file]
+        if input_args.verbose:
+            args.append('--verbose')
+        subprocess.call(args)
+
+        # Open created file
+        gps_file = os.path.join(tmp_dir,
+                                os.path.basename(raw_file)) + '.gps.txt'
+        with open(gps_file) as f:
+            gps_data = f.readlines()
+
+        # Remove the file after reading
+        os.remove(gps_file)
+
+        # Read coords
+        for line in gps_data:
+            lat.append(float(line.split()[5].split('=')[1]))
+            lon.append(float(line.split()[6].split('=')[1]))
+            elev.append(float(line.split()[7].split('=')[1]))
+
+    # Convert to numpy array
+    lat = np.array(lat)
+    lon = np.array(lon)
+    elev = np.array(elev)
+
+    # Remove zeros from GPS errors
+    lat = lat[lat != 0]
+    lon = lon[lon != 0]
+
+    # Merge coordinates
+    output_coords = [np.median(lat), np.median(lon), np.median(elev)]
+
+    # Write to JSON file - format is [lat, lon, elev] with elevation in meters
+    json_filename = os.path.join(input_args.output_dir,
+                                 f'{input_args.network}.{input_args.station}.{input_args.location}.{input_args.channel}.json')
+    with open(json_filename, 'w') as f:
+        json.dump(output_coords, f)
+        f.write('\n')
+
+    print(f'Coordinates exported to {os.path.basename(json_filename)}')
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Plot all GPS points
+    ax.scatter(lon, lat, color='black', zorder=2, clip_on=False)
+
+    # Plot median coordinate
+    ax.scatter(*output_coords[0:2][::-1], color='red', zorder=2, clip_on=False,
+               label=f'{tuple(output_coords[0:2])}\n{output_coords[2]} m')
+
+    ax.set_aspect('equal')
+
+    ax.set_title(f'{lon.size:,} GPS points')
+
+    # Aesthetic improvements
+    ax.set_xlim(lon.min(), lon.max())
+    ax.set_ylim(lat.min(), lat.max())
+    interval = 0.00001
+    ax.set_xticks(np.arange(lon.min(), lon.max() + interval, interval))
+    ax.set_yticks(np.arange(lat.min(), lat.max() + interval, interval))
+    ax.set_xticklabels([f'{t:.5f}' for t in ax.get_xticks()])
+    ax.set_yticklabels([f'{t:.5f}' for t in ax.get_yticks()])
+
+    ax.legend(title='Median coordinate:')
+
+    ax.grid(linestyle=':')
+
+    fig.autofmt_xdate()
+
+    png_filename = json_filename.rstrip('.json') + '.png'
+    fig.savefig(png_filename, dpi=300, bbox_inches='tight')
+
+    print('Coordinate overview figure exported to '
+          f'{os.path.basename(png_filename)}')
+
+# Remove tmp directory (only if it's empty, to be safe!)
+if not os.listdir(tmp_dir):
+    os.removedirs(tmp_dir)
+
+print('------------------------------------------------------------------')
 print('...finished conversion process.')
-print('----------------------------------------------------------------------')
+print('------------------------------------------------------------------')
