@@ -11,7 +11,8 @@ Geophysical Institute, University of Alaska Fairbanks
 This command-line tool converts DATA-CUBE files into miniSEED files of a
 desired length of time with specified metadata. Output miniSEED files are ready
 for IRIS upload and have units of Pa (although maybe we shouldn't apply the
-calib... future change). The tool can differentiate between channels.
+calib... future change). The tool can differentiate between channels, and
+optionally extract digitizer GPS coordinates.
 
 Requirements:
     * GIPPtools-2015.225 or newer (add gipptools-****.***/bin to your PATH)
@@ -51,13 +52,14 @@ REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
                          'YIFA', 'YIFB', 'YIFC', 'YIFD']
 # -----------------------------------------------------------------------------
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to miniSEED while trimming and renaming.',
-                                 allow_abbrev=False)
-parser.add_argument('input_dir', metavar='input-dir',
-                    help='input directory for DATA-CUBE files')
-parser.add_argument('output_dir', metavar='output-dir',
-                    help='output directory for miniSEED files')
+# Set up command-line interface
+desc = """
+       Convert DATA-CUBE files to miniSEED while trimming and renaming.
+       Optionally extract digitizer coordinates.
+       """
+parser = argparse.ArgumentParser(description=desc, allow_abbrev=False)
+parser.add_argument('input_dir', help='input directory for DATA-CUBE files')
+parser.add_argument('output_dir', help='output directory for miniSEED files')
 parser.add_argument('network', help='SEED network code')
 parser.add_argument('station', help='SEED station code')
 parser.add_argument('location',
@@ -68,6 +70,12 @@ parser.add_argument('-v', '--verbose', action='store_true',
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
                     help='extract coordinates from digitizer GPS')
 input_args = parser.parse_args()
+
+# Check if directories exist
+if not (os.path.exists(input_args.input_dir) and
+        os.path.exists(input_args.output_dir)):
+    raise NotADirectoryError('Both the input and output directories must '
+                             'already exist.')
 
 # Create temporary processing directory in the output directory
 tmp_dir = os.path.join(input_args.output_dir, 'tmp')
@@ -219,7 +227,7 @@ for file in cut_file_list:
 # Extract digitizer GPS coordinates if requested
 if input_args.grab_gps:
     print('------------------------------------------------------------------')
-    print(f'Extracting and reducing GPS data for {len(raw_files)} raw file(s)...')
+    print(f'Extracting/reducing GPS data for {len(raw_files)} raw file(s)...')
     print('------------------------------------------------------------------')
 
     # Create containers for coords
@@ -270,6 +278,7 @@ if input_args.grab_gps:
 
     print(f'Coordinates exported to {os.path.basename(json_filename)}')
 
+    # Make a figure
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Plot all GPS points
