@@ -113,6 +113,7 @@ print(f'Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir
 raw_files = glob.glob(os.path.join(input_args.input_dir, '*'))
+raw_files.sort()
 extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
 if len(extensions) is not 1:
     raise ValueError(f'Files from multiple digitizers found: {extensions}')
@@ -174,6 +175,7 @@ for file in day_file_list:
 # metadata (automatically distinguish between a 3-element array or single
 # sensor)
 cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
+cut_file_list.sort()
 print('------------------------------------------------------------------')
 print(f'Adding metadata to {len(cut_file_list)} miniSEED file(s)...')
 print('------------------------------------------------------------------')
@@ -235,7 +237,7 @@ if input_args.grab_gps:
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
-
+        print(os.path.basename(raw_file))
         args = ['cubeinfo', '--format=GPS', f'--output-dir={tmp_dir}',
                 raw_file]
         if input_args.verbose:
