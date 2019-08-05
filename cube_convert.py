@@ -44,8 +44,9 @@ TRACE_DUR = 'HOUR'  # 'HOUR' is standard; other valid lengths can be used for
 
 BITWEIGHT = 2.44140625e-7  # [V/ct]
 
-DEFAULT_SENSITIVITY = 0.009  # [V/Pa] Default sensor sensitivity
-DEFAULT_OFFSET = -0.015      # [V] Default digitizer offset
+# Below two values are the mean of the values in the accompanying JSON files
+DEFAULT_SENSITIVITY = 0.00902           # [V/Pa] Default sensor sensitivity
+DEFAULT_OFFSET = -0.015288635020976882  # [V] Default digitizer offset
 
 NUM_SATS = 9  # Minimum number of satellites required for keeping a GPS point
 
