@@ -327,7 +327,7 @@ if input_args.grab_gps:
 
     # Plot median coordinate
     ax.scatter(*output_coords[0:2][::-1], s=180, facecolor='none',
-               edgecolor='black', clip_on=False,
+               edgecolor='black', zorder=3, clip_on=False,
                label=f'{tuple(output_coords[0:2])}\n{output_coords[2]} m')
 
     ax.legend(title='Median coordinate:')
