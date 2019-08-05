@@ -47,6 +47,8 @@ BITWEIGHT = 2.44140625e-7  # [V/ct]
 DEFAULT_SENSITIVITY = 0.009  # [V/Pa] Default sensor sensitivity
 DEFAULT_OFFSET = -0.015      # [V] Default digitizer offset
 
+NUM_SATS = 9  # Minimum number of satellites required for keeping a GPS point
+
 # Reverse polarity list for 2016 Yasur deployment
 REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
                          'YIFA', 'YIFB', 'YIFC', 'YIFD']
@@ -233,11 +235,13 @@ if input_args.grab_gps:
     print('------------------------------------------------------------------')
 
     # Create containers for coords
-    lat, lon, elev = [], [], []
+    lat, lon, elev, sats = [], [], [], []
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
-        print(os.path.basename(raw_file))
+        gps_file = os.path.join(tmp_dir,
+                                os.path.basename(raw_file)) + '.gps.txt'
+        print(os.path.basename(gps_file))
         args = ['cubeinfo', '--format=GPS', f'--output-dir={tmp_dir}',
                 raw_file]
         if input_args.verbose:
@@ -245,8 +249,6 @@ if input_args.grab_gps:
         subprocess.call(args)
 
         # Open created file
-        gps_file = os.path.join(tmp_dir,
-                                os.path.basename(raw_file)) + '.gps.txt'
         with open(gps_file) as f:
             gps_data = f.readlines()
 
@@ -258,15 +260,25 @@ if input_args.grab_gps:
             lat.append(float(line.split()[5].split('=')[1]))
             lon.append(float(line.split()[6].split('=')[1]))
             elev.append(float(line.split()[7].split('=')[1]))
+            sats.append(float(line.split()[10].split('=')[1]))
 
     # Convert to numpy array
     lat = np.array(lat)
     lon = np.array(lon)
     elev = np.array(elev)
+    sats = np.array(sats)
 
     # Remove zeros from GPS errors
-    lat = lat[lat != 0]
-    lon = lon[lon != 0]
+    non_zero = np.array([lat != 0, lon != 0]).all(axis=0)
+    lat = lat[non_zero]
+    lon = lon[non_zero]
+    elev = elev[non_zero]
+    sats = sats[non_zero]
+
+    # Threshold based on minimum number of satellites
+    lat = lat[sats >= NUM_SATS]
+    lon = lon[sats >= NUM_SATS]
+    elev = elev[sats >= NUM_SATS]
 
     # Merge coordinates
     output_coords = [np.median(lat), np.median(lon), np.median(elev)]
@@ -280,34 +292,56 @@ if input_args.grab_gps:
 
     print(f'Coordinates exported to {os.path.basename(json_filename)}')
 
+    # Histogram prep
+    INTERVAL = 0.00001
+    x_edges = np.linspace(lon.min()-INTERVAL/2, lon.max()+INTERVAL/2,
+                          int(round((lon.max()-lon.min())/INTERVAL))+2).round(6)
+    y_edges = np.linspace(lat.min()-INTERVAL/2, lat.max()+INTERVAL/2,
+                          int(round((lat.max()-lat.min())/INTERVAL))+2).round(6)
+
+    # Create histogram
+    hist = np.histogram2d(lon, lat, bins=[x_edges, y_edges])[0]
+    hist[hist == 0] = np.nan
+    hist = hist.T
+
+    # Create x and y coordinate vectors
+    xvec = np.linspace(lon.min(), lon.max(),
+                       int(round((lon.max()-lon.min())/INTERVAL))+1).round(5)
+    yvec = np.linspace(lat.min(), lat.max(),
+                       int(round((lat.max()-lat.min())/INTERVAL))+1).round(5)
+    xx, yy = np.meshgrid(xvec, yvec)
+
+    # Convert to (x, y, counts) points
+    counts = hist.ravel()
+    lons = xx.ravel()
+    lats = yy.ravel()
+
     # Make a figure
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Plot all GPS points
-    ax.scatter(lon, lat, color='black', zorder=2, clip_on=False)
+    sc = ax.scatter(lons, lats, c=counts, cmap='rainbow', zorder=3,
+                    clip_on=False)
+
+    cbar = fig.colorbar(sc, label='Frequency')
 
     # Plot median coordinate
-    ax.scatter(*output_coords[0:2][::-1], color='red', zorder=2, clip_on=False,
+    ax.scatter(*output_coords[0:2][::-1], s=180, facecolor='none',
+               edgecolor='black', clip_on=False,
                label=f'{tuple(output_coords[0:2])}\n{output_coords[2]} m')
 
-    ax.set_aspect('equal')
-
-    ax.set_title(f'{lon.size:,} GPS points')
+    ax.legend(title='Median coordinate:')
 
     # Aesthetic improvements
     ax.set_xlim(lon.min(), lon.max())
     ax.set_ylim(lat.min(), lat.max())
-    interval = 0.00001
-    ax.set_xticks(np.arange(lon.min(), lon.max() + interval, interval))
-    ax.set_yticks(np.arange(lat.min(), lat.max() + interval, interval))
-    ax.set_xticklabels([f'{t:.5f}' for t in ax.get_xticks()])
-    ax.set_yticklabels([f'{t:.5f}' for t in ax.get_yticks()])
-
-    ax.legend(title='Median coordinate:')
-
+    ax.set_xticklabels([f'{t:f}' for t in ax.get_xticks()])
+    ax.set_yticklabels([f'{t:f}' for t in ax.get_yticks()])
+    fig.autofmt_xdate()
+    ax.set_aspect('equal')
     ax.grid(linestyle=':')
 
-    fig.autofmt_xdate()
+    ax.set_title(f'{lon.size:,} GPS points with at least {NUM_SATS} satellites')
 
     png_filename = json_filename.rstrip('.json') + '.png'
     fig.savefig(png_filename, dpi=300, bbox_inches='tight')
