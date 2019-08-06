@@ -336,13 +336,17 @@ if input_args.grab_gps:
     # Aesthetic improvements
     ax.set_xlim(lon.min(), lon.max())
     ax.set_ylim(lat.min(), lat.max())
-    ax.set_xticklabels([f'{t:f}' for t in ax.get_xticks()])
-    ax.set_yticklabels([f'{t:f}' for t in ax.get_yticks()])
+    for axis in (ax.xaxis, ax.yaxis):
+        axis.set_major_locator(plt.MultipleLocator(5 * INTERVAL))
+        axis.set_major_formatter(plt.ScalarFormatter(useOffset=False))
+        axis.set_ticks_position('both')
+    ax.minorticks_on()
     fig.autofmt_xdate()
     ax.set_aspect('equal')
     ax.grid(linestyle=':')
 
-    ax.set_title(f'{lon.size:,} GPS points with at least {NUM_SATS} satellites')
+    ax.set_title(f'{lon.size:,} GPS points with at least {NUM_SATS} '
+                 'satellites', pad=20)
 
     png_filename = json_filename.rstrip('.json') + '.png'
     fig.savefig(png_filename, dpi=300, bbox_inches='tight')
