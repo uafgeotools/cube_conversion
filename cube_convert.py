@@ -11,8 +11,13 @@ Geophysical Institute, University of Alaska Fairbanks
 This command-line tool converts DATA-CUBE files into miniSEED files of a
 desired length of time with specified metadata. Output miniSEED files are ready
 for IRIS upload and have units of Pa (although maybe we shouldn't apply the
-calib... future change). The tool can differentiate between channels, and
-optionally extract digitizer GPS coordinates.
+calibration? ...future change). The tool can differentiate between channels and
+(optionally) extract digitizer GPS coordinates.
+
+Supplemental files:
+    * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairings
+    * digitizer_offsets.json        <-- Digitizer offsets in V
+    * sensor_sensitivities.json     <-- Sensor sensitivities in V/Pa
 
 Requirements:
     * GIPPtools-2015.225 or newer (add gipptools-****.***/bin to your PATH)
@@ -23,15 +28,15 @@ Requirements:
 Usage:
     Type the following on the command line:
         $ conda activate my_env_with_obspy
-        $ python cube_convert.py --help
+        $ python path/to/cube_convert.py --help
 """
 
 import os
 import subprocess
 import glob
-import obspy
 import json
 import argparse
+import obspy
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -57,7 +62,7 @@ REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
 
 # Set up command-line interface
 desc = """
-       Convert DATA-CUBE files to miniSEED while trimming and renaming.
+       Convert DATA-CUBE files to miniSEED files while trimming and renaming.
        Optionally extract digitizer coordinates.
        """
 parser = argparse.ArgumentParser(description=desc, allow_abbrev=False)
@@ -71,7 +76,7 @@ parser.add_argument('channel', help='SEED channel code (e.g. BDF, HDF, etc.)')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
-                    help='extract coordinates from digitizer GPS')
+                    help='additionally extract coordinates from digitizer GPS')
 input_args = parser.parse_args()
 
 # Check if directories exist
