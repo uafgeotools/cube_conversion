@@ -12,7 +12,8 @@ This command-line tool converts DATA-CUBE files into miniSEED files of a
 desired length of time with specified metadata. Output miniSEED files are ready
 for IRIS upload and have units of Pa (although maybe we shouldn't apply the
 calibration? ...future change). The tool can differentiate between channels for
-3 channel DATA-CUBE files and optionally extract digitizer GPS coordinates.
+3 channel DATA-CUBE files and optionally extract coordinates from the
+digitizer's GPS.
 
 Supplemental files:
     * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairings
@@ -34,6 +35,7 @@ Usage:
 import os
 import subprocess
 import glob
+import re
 import json
 import argparse
 import obspy
@@ -64,8 +66,8 @@ REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
 parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to '
                                              'miniSEED files while trimming, '
                                              'adding metadata, and renaming. '
-                                             'Optionally extract digitizer '
-                                             'coordinates.',
+                                             'Optionally extract coordinates '
+                                             'from digitizer GPS.',
                                  allow_abbrev=False)
 parser.add_argument('input_dir',
                     help='directory containing raw DATA-CUBE files (all files '
@@ -100,6 +102,16 @@ if not os.path.exists(input_args.output_dir):
     raise NotADirectoryError(f'Output directory \'{input_args.output_dir}\' '
                              'doesn\'t exist.')
 
+# Check network code format
+input_args.network = input_args.network.upper()
+if not re.fullmatch('[A-Z]{2}', input_args.network):
+    raise ValueError(f'Network code \'{input_args.network}\' is not valid.')
+
+# Check station code format
+input_args.station = input_args.station.upper()
+if not re.fullmatch('[A-Z0-9]{3,4}', input_args.station):
+    raise ValueError(f'Station code \'{input_args.station}\' is not valid.')
+
 # Find directory containing this script
 script_dir = os.path.dirname(__file__)
 
@@ -120,14 +132,14 @@ print('Beginning conversion process...')
 print('------------------------------------------------------------------')
 
 # Print requested metadata
-print(f'Network code: {input_args.network}')
-print(f'Station code: {input_args.station}')
+print(f' Network code: {input_args.network}')
+print(f' Station code: {input_args.station}')
 if input_args.location == 'AUTO':
     loc = 'Automatic'
 else:
     loc = input_args.location
 print(f'Location code: {loc}')
-print(f'Channel code: {input_args.channel}')
+print(f' Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir
 raw_files = glob.glob(os.path.join(input_args.input_dir, '*.[A-Z][A-Z][A-Z]'))
@@ -143,28 +155,28 @@ tmp_dir = os.path.join(input_args.output_dir, 'tmp')
 if not os.path.exists(tmp_dir):
     os.makedirs(tmp_dir)
 
-# Automatically grab digitizer and sensor for this file
+# Get digitizer info and offset
 digitizer = extensions[0]
-sensor = digitizer_sensor_pairs[digitizer]
-
-# Get digitizer offset
 try:
     offset = digitizer_offsets[digitizer]
 except KeyError:
     warnings.warn('No matching offset values. Using default of '
                   f'{DEFAULT_OFFSET} V.')
     offset = DEFAULT_OFFSET
+print(f'Digitizer: {digitizer} (offset = {offset} V)')
 
-# Get sensor sensitivity
+# Get sensor info and sensitivity
+try:
+    sensor = digitizer_sensor_pairs[digitizer]
+except KeyError:
+    print(f'No sensor found for \'{digitizer}\' digitizer. Stopping.')
+    raise
 try:
     sensitivity = sensitivities[sensor]
 except KeyError:
     warnings.warn('No matching sensitivities. Using default of '
                   f'{DEFAULT_SENSITIVITY} V/Pa.')
     sensitivity = DEFAULT_SENSITIVITY
-
-# Print digitizer and sensor info
-print(f'Digitizer: {digitizer} (offset = {offset} V)')
 print(f'Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
 
 # Convert the DATA-CUBE files to miniSEED
@@ -218,7 +230,6 @@ for file in cut_file_list:
         tr.data = tr.data * -1
     tr.stats.mseed.encoding = 'FLOAT64'
 
-    # If no location code was provided, choose one automatically
     if input_args.location == 'AUTO':
         if file.endswith('.pri0'):    # Channel 1
             location_id = '01'
@@ -230,15 +241,10 @@ for file in cut_file_list:
             location_id = '03'
             channel_pattern = '*.pri2'
         else:
-            # Remove tmp directory (only if it's empty, to be safe!)
-            if not os.listdir(tmp_dir):
-                os.removedirs(tmp_dir)
-            raise ValueError('File ending \'.{}\' not '
-                             'understood.'.format(file.split('.')[-1]))
-    # Otherwise, use explicitly provided code
+            raise ValueError  # Should never reach this statement
     else:
         location_id = input_args.location
-        channel_pattern = '*'  # Use all files
+        channel_pattern = '*.pri?'  # Use all files
 
     tr.stats.location = location_id
 
