@@ -97,7 +97,7 @@ script_dir = os.path.dirname(__file__)
 with open(os.path.join(script_dir, 'digitizer_sensor_pairs.json')) as f:
     digitizer_sensor_pairs = json.load(f)
 
-# Load sensor sensitivities in V/Pa(?)
+# Load sensor sensitivities in V/Pa
 with open(os.path.join(script_dir, 'sensor_sensitivities.json')) as f:
     sensitivities = json.load(f)
 
@@ -120,10 +120,12 @@ print(f'Location code: {loc}')
 print(f'Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir
-raw_files = glob.glob(os.path.join(input_args.input_dir, '*'))
+raw_files = glob.glob(os.path.join(input_args.input_dir, '*.???'))
 raw_files.sort()
 extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
-if len(extensions) is not 1:
+if not extensions:
+    raise FileNotFoundError('No raw files found.')
+elif len(extensions) is not 1:
     raise ValueError(f'Files from multiple digitizers found: {extensions}')
 
 # Automatically grab digitizer and sensor for this file
@@ -275,6 +277,9 @@ if input_args.grab_gps:
 
     # Threshold based on minimum number of satellites
     gps_data = gps_data[:, gps_data[3] >= NUM_SATS]
+    if gps_data.size is 0:
+        raise ValueError(f'No GPS points with at least {NUM_SATS} satellites '
+                         'exist.')
 
     # Unpack to vectors
     (lat, lon, elev, sats) = gps_data
