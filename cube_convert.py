@@ -85,11 +85,6 @@ if not (os.path.exists(input_args.input_dir) and
     raise NotADirectoryError('Both the input and output directories must '
                              'already exist.')
 
-# Create temporary processing directory in the output directory
-tmp_dir = os.path.join(input_args.output_dir, 'tmp')
-if not os.path.exists(tmp_dir):
-    os.makedirs(tmp_dir)
-
 # Find directory containing this script
 script_dir = os.path.dirname(__file__)
 
@@ -127,6 +122,11 @@ if not extensions:
     raise FileNotFoundError('No raw files found.')
 elif len(extensions) is not 1:
     raise ValueError(f'Files from multiple digitizers found: {extensions}')
+
+# Create temporary processing directory in the output directory
+tmp_dir = os.path.join(input_args.output_dir, 'tmp')
+if not os.path.exists(tmp_dir):
+    os.makedirs(tmp_dir)
 
 # Automatically grab digitizer and sensor for this file
 digitizer = extensions[0]
@@ -215,6 +215,9 @@ for file in cut_file_list:
             location_id = '03'
             channel_pattern = '*.pri2'
         else:
+            # Remove tmp directory (only if it's empty, to be safe!)
+            if not os.listdir(tmp_dir):
+                os.removedirs(tmp_dir)
             raise ValueError('File ending \'.{}\' not understood.'.format(file.split('.')[-1]))
     # Otherwise, use explicitly provided code
     else:
@@ -278,6 +281,9 @@ if input_args.grab_gps:
     # Threshold based on minimum number of satellites
     gps_data = gps_data[:, gps_data[3] >= NUM_SATS]
     if gps_data.size is 0:
+        # Remove tmp directory (only if it's empty, to be safe!)
+        if not os.listdir(tmp_dir):
+            os.removedirs(tmp_dir)
         raise ValueError(f'No GPS points with at least {NUM_SATS} satellites '
                          'exist.')
 
