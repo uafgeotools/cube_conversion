@@ -11,8 +11,8 @@ Geophysical Institute, University of Alaska Fairbanks
 This command-line tool converts DATA-CUBE files into miniSEED files of a
 desired length of time with specified metadata. Output miniSEED files are ready
 for IRIS upload and have units of Pa (although maybe we shouldn't apply the
-calibration? ...future change). The tool can differentiate between channels and
-(optionally) extract digitizer GPS coordinates.
+calibration? ...future change). The tool can differentiate between channels for
+3 channel DATA-CUBE files and optionally extract digitizer GPS coordinates.
 
 Supplemental files:
     * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairings
@@ -73,25 +73,32 @@ parser.add_argument('input_dir',
 parser.add_argument('output_dir',
                     help='directory for output miniSEED and GPS-related files')
 parser.add_argument('network',
-                    help='desired SEED network code')
+                    help='desired SEED network code (2 characters, A-Z)')
 parser.add_argument('station',
-                    help='desired SEED station code')
+                    help='desired SEED station code (3-4 characters, A-Z & '
+                         '0-9)')
 parser.add_argument('location',
                     help='desired SEED location code (if AUTO, choose '
-                         'automatically)')
+                         'automatically for 3 channel DATA-CUBE files)',
+                    choices=['01', '02', '03', '04', 'AUTO'])
 parser.add_argument('channel',
-                    help='desired SEED channel code (e.g. BDF, HDF, etc.)')
+                    help='desired SEED channel code',
+                    choices=['BDF', 'HDF', 'DDF'])
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
                     help='additionally extract coordinates from digitizer GPS')
 input_args = parser.parse_args()
 
-# Check if directories exist
-if not (os.path.exists(input_args.input_dir) and
-        os.path.exists(input_args.output_dir)):
-    raise NotADirectoryError('Both the input and output directories must '
-                             'already exist.')
+# Check if input directory is valid
+if not os.path.exists(input_args.input_dir):
+    raise NotADirectoryError(f'Input directory \'{input_args.input_dir}\' '
+                             'doesn\'t exist.')
+
+# Check if output directory is valid
+if not os.path.exists(input_args.output_dir):
+    raise NotADirectoryError(f'Output directory \'{input_args.output_dir}\' '
+                             'doesn\'t exist.')
 
 # Find directory containing this script
 script_dir = os.path.dirname(__file__)
@@ -123,7 +130,7 @@ print(f'Location code: {loc}')
 print(f'Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir
-raw_files = glob.glob(os.path.join(input_args.input_dir, '*.???'))
+raw_files = glob.glob(os.path.join(input_args.input_dir, '*.[A-Z][A-Z][A-Z]'))
 raw_files.sort()
 extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
 if not extensions:
