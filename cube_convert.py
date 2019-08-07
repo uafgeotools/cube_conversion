@@ -61,18 +61,26 @@ REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
 # -----------------------------------------------------------------------------
 
 # Set up command-line interface
-desc = """
-       Convert DATA-CUBE files to miniSEED files while trimming and renaming.
-       Optionally extract digitizer coordinates.
-       """
-parser = argparse.ArgumentParser(description=desc, allow_abbrev=False)
-parser.add_argument('input_dir', help='input directory for DATA-CUBE files')
-parser.add_argument('output_dir', help='output directory for miniSEED files')
-parser.add_argument('network', help='SEED network code')
-parser.add_argument('station', help='SEED station code')
+parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to '
+                                             'miniSEED files while trimming, '
+                                             'adding metadata, and renaming. '
+                                             'Optionally extract digitizer '
+                                             'coordinates.',
+                                 allow_abbrev=False)
+parser.add_argument('input_dir',
+                    help='directory containing raw DATA-CUBE files (all files '
+                         'must originate from a single digitizer)')
+parser.add_argument('output_dir',
+                    help='directory for output miniSEED and GPS-related files')
+parser.add_argument('network',
+                    help='desired SEED network code')
+parser.add_argument('station',
+                    help='desired SEED station code')
 parser.add_argument('location',
-                    help='SEED location code (if AUTO, choose automatically)')
-parser.add_argument('channel', help='SEED channel code (e.g. BDF, HDF, etc.)')
+                    help='desired SEED location code (if AUTO, choose '
+                         'automatically)')
+parser.add_argument('channel',
+                    help='desired SEED channel code (e.g. BDF, HDF, etc.)')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
@@ -218,7 +226,8 @@ for file in cut_file_list:
             # Remove tmp directory (only if it's empty, to be safe!)
             if not os.listdir(tmp_dir):
                 os.removedirs(tmp_dir)
-            raise ValueError('File ending \'.{}\' not understood.'.format(file.split('.')[-1]))
+            raise ValueError('File ending \'.{}\' not '
+                             'understood.'.format(file.split('.')[-1]))
     # Otherwise, use explicitly provided code
     else:
         location_id = input_args.location
@@ -229,7 +238,8 @@ for file in cut_file_list:
     st.write(file, format='MSEED')
 
     # Define template for miniSEED renaming
-    name_template = f'{input_args.network}.{input_args.station}.{location_id}.{input_args.channel}.%Y.%j.%H'
+    name_template = (f'{input_args.network}.{input_args.station}'
+                     f'.{location_id}.{input_args.channel}.%Y.%j.%H')
 
     # Rename cut files and place in output directory
     args = ['mseedrename', f'--template={name_template}', '--force-overwrite',
@@ -295,7 +305,9 @@ if input_args.grab_gps:
 
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
-                                 f'{input_args.network}.{input_args.station}.{input_args.location}.{input_args.channel}.json')
+                                 f'{input_args.network}.{input_args.station}'
+                                 f'.{input_args.location}.{input_args.channel}'
+                                 '.json')
     with open(json_filename, 'w') as f:
         json.dump(output_coords, f)
         f.write('\n')
@@ -304,13 +316,14 @@ if input_args.grab_gps:
 
     # Histogram prep
     INTERVAL = 0.00001
-    x_edges = np.linspace(lon.min()-INTERVAL/2, lon.max()+INTERVAL/2,
-                          int(round((lon.max()-lon.min())/INTERVAL))+2).round(6)
-    y_edges = np.linspace(lat.min()-INTERVAL/2, lat.max()+INTERVAL/2,
-                          int(round((lat.max()-lat.min())/INTERVAL))+2).round(6)
+    x_edges = np.linspace(lon.min() - INTERVAL / 2, lon.max() + INTERVAL / 2,
+                          int(round((lon.max() - lon.min()) / INTERVAL)) + 2)
+    y_edges = np.linspace(lat.min() - INTERVAL / 2, lat.max() + INTERVAL / 2,
+                          int(round((lat.max() - lat.min()) / INTERVAL)) + 2)
 
     # Create histogram
-    hist = np.histogram2d(lon, lat, bins=[x_edges, y_edges])[0]
+    hist = np.histogram2d(lon, lat,
+                          bins=[x_edges.round(6), y_edges.round(6)])[0]
     hist[hist == 0] = np.nan
     hist = hist.T
 
