@@ -163,7 +163,7 @@ except KeyError:
     warnings.warn('No matching offset values. Using default of '
                   f'{DEFAULT_OFFSET} V.')
     offset = DEFAULT_OFFSET
-print(f'Digitizer: {digitizer} (offset = {offset} V)')
+print(f'    Digitizer: {digitizer} (offset = {offset} V)')
 
 # Get sensor info and sensitivity
 try:
@@ -177,7 +177,7 @@ except KeyError:
     warnings.warn('No matching sensitivities. Using default of '
                   f'{DEFAULT_SENSITIVITY} V/Pa.')
     sensitivity = DEFAULT_SENSITIVITY
-print(f'Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
+print(f'       Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
 
 # Convert the DATA-CUBE files to miniSEED
 print('------------------------------------------------------------------')
@@ -186,7 +186,7 @@ print('------------------------------------------------------------------')
 for raw_file in raw_files:
     print(os.path.basename(raw_file))
     args = ['cube2mseed', '--resample=SINC', f'--output-dir={tmp_dir}',
-            raw_file]
+            '--encoding=FLOAT-64', raw_file]
     if input_args.verbose:
         args.append('--verbose')
     subprocess.call(args)
@@ -228,7 +228,6 @@ for file in cut_file_list:
     tr.data = tr.data / sensitivity  # Convert from V to Pa
     if input_args.station in REVERSE_POLARITY_LIST:
         tr.data = tr.data * -1
-    tr.stats.mseed.encoding = 'FLOAT64'
 
     if input_args.location == 'AUTO':
         if file.endswith('.pri0'):    # Channel 1
