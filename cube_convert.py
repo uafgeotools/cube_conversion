@@ -240,8 +240,13 @@ if input_args.grab_gps:
     print(f'Extracting/reducing GPS data for {len(raw_files)} raw file(s)...')
     print('------------------------------------------------------------------')
 
-    # Create containers for coords
-    lat, lon, elev, sats = [], [], [], []
+    # Create four-row container for data
+    gps_data = np.empty((4, 0))
+
+    # Define function to parse columns of input file
+    def converter(string):
+        return string.split('=')[-1]
+    converters = {5: converter, 6: converter, 7: converter, 10: converter}
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
@@ -254,37 +259,25 @@ if input_args.grab_gps:
             args.append('--verbose')
         subprocess.call(args)
 
-        # Open created file
-        with open(gps_file) as f:
-            gps_data = f.readlines()
+        # Read file and parse according to function above
+        data = np.loadtxt(gps_file, comments=None, encoding='utf-8',
+                          usecols=converters.keys(), converters=converters,
+                          unpack=True)
+
+        # Append the above data to existing array
+        gps_data = np.hstack([gps_data, data])
 
         # Remove the file after reading
         os.remove(gps_file)
 
-        # Read coords
-        for line in gps_data:
-            lat.append(float(line.split()[5].split('=')[1]))
-            lon.append(float(line.split()[6].split('=')[1]))
-            elev.append(float(line.split()[7].split('=')[1]))
-            sats.append(float(line.split()[10].split('=')[1]))
-
-    # Convert to numpy array
-    lat = np.array(lat)
-    lon = np.array(lon)
-    elev = np.array(elev)
-    sats = np.array(sats)
-
-    # Remove zeros from GPS errors
-    non_zero = np.array([lat != 0, lon != 0]).all(axis=0)
-    lat = lat[non_zero]
-    lon = lon[non_zero]
-    elev = elev[non_zero]
-    sats = sats[non_zero]
+    # Remove lat/lon zeros from GPS errors
+    gps_data = gps_data[:, (gps_data[0:2] != 0).all(axis=0)]
 
     # Threshold based on minimum number of satellites
-    lat = lat[sats >= NUM_SATS]
-    lon = lon[sats >= NUM_SATS]
-    elev = elev[sats >= NUM_SATS]
+    gps_data = gps_data[:, gps_data[3] >= NUM_SATS]
+
+    # Unpack to vectors
+    (lat, lon, elev, sats) = gps_data
 
     # Merge coordinates
     output_coords = [np.median(lat), np.median(lon), np.median(elev)]
