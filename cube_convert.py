@@ -18,7 +18,7 @@ digitizer's GPS. The code only looks for files from digitizers defined in the
 pairings change or new pairings are added.
 
 Supplemental files:
-    * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairings
+    * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairs (EDIT ME!)
     * digitizer_offsets.json        <-- Digitizer offsets in V
     * sensor_sensitivities.json     <-- Sensor sensitivities in V/Pa
 
@@ -144,7 +144,7 @@ print(f'Location code: {loc}')
 print(f' Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir (only search for files with extensions
-# matching the codes included in digitizer_sensor_pairs.json)
+# matching the codes included in `digitizer_sensor_pairs.json`)
 raw_files = []
 for digitizer_code in digitizer_sensor_pairs.keys():
     raw_files += glob.glob(os.path.join(input_args.input_dir,
