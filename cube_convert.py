@@ -183,10 +183,10 @@ except KeyError:
     sensitivity = DEFAULT_SENSITIVITY
 print(f'       Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
 
-# Convert the DATA-CUBE files to miniSEED
 print('------------------------------------------------------------------')
 print(f'Running cube2mseed on {len(raw_files)} raw file(s)...')
 print('------------------------------------------------------------------')
+
 for raw_file in raw_files:
     print(os.path.basename(raw_file))
     args = ['cube2mseed', '--resample=SINC', f'--output-dir={tmp_dir}',
@@ -195,13 +195,13 @@ for raw_file in raw_files:
         args.append('--verbose')
     subprocess.call(args)
 
-# Create list of all day-long files
-day_file_list = glob.glob(os.path.join(tmp_dir, '*'))
-
-# Cut the converted day-long files into smaller traces (e.g. hour-long)
 print('------------------------------------------------------------------')
 print('Running mseedcut on converted miniSEED files...')
 print('------------------------------------------------------------------')
+
+# Create list of all day-long files
+day_file_list = glob.glob(os.path.join(tmp_dir, '*'))
+
 args = ['mseedcut', f'--output-dir={tmp_dir}', f'--file-length={TRACE_DUR}',
         tmp_dir]
 if input_args.verbose:
@@ -212,15 +212,18 @@ subprocess.call(args)
 for file in day_file_list:
     os.remove(file)
 
-# Loop through each cut file and assign the channel number, editing the simple
-# metadata (automatically distinguish between a 3-element array or single
-# sensor)
+# Create list of all resulting cut files
 cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
 cut_file_list.sort()  # Sort from earliest to latest in time
-t_min, t_max = np.inf, -np.inf  # Initialize time bounds
+
 print('------------------------------------------------------------------')
 print(f'Adding metadata to {len(cut_file_list)} miniSEED file(s)...')
 print('------------------------------------------------------------------')
+
+# Loop through each cut file and assign the channel number, editing the simple
+# metadata (automatically distinguish between a 3-element array or single
+# sensor)
+t_min, t_max = np.inf, -np.inf  # Initialize time bounds
 for file in cut_file_list:
     print(os.path.basename(file))
     st = obspy.read(file)
@@ -271,6 +274,7 @@ for file in cut_file_list:
 
 # Extract digitizer GPS coordinates if requested
 if input_args.grab_gps:
+
     print('------------------------------------------------------------------')
     print(f'Extracting/reducing GPS data for {len(raw_files)} raw file(s)...')
     print('------------------------------------------------------------------')
