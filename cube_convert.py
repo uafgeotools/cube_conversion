@@ -172,11 +172,7 @@ except KeyError:
 print(f'    Digitizer: {digitizer} (offset = {offset} V)')
 
 # Get sensor info and sensitivity
-try:
-    sensor = digitizer_sensor_pairs[digitizer]
-except KeyError:
-    print(f'No sensor found for \'{digitizer}\' digitizer. Stopping.')
-    raise
+sensor = digitizer_sensor_pairs[digitizer]
 try:
     sensitivity = sensitivities[sensor]
 except KeyError:
