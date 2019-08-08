@@ -39,6 +39,7 @@ import re
 import json
 import argparse
 import obspy
+from obspy.geodetics import gps2dist_azimuth
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -213,6 +214,7 @@ for file in day_file_list:
 # sensor)
 cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
 cut_file_list.sort()
+t_min, t_max = np.inf, -np.inf  # Initialize time bounds
 print('------------------------------------------------------------------')
 print(f'Adding metadata to {len(cut_file_list)} miniSEED file(s)...')
 print('------------------------------------------------------------------')
@@ -246,6 +248,9 @@ for file in cut_file_list:
         channel_pattern = '*.pri?'  # Use all files
 
     tr.stats.location = location_id
+
+    t_min = np.min([t_min, tr.stats.starttime])
+    t_max = np.max([t_max, tr.stats.endtime])
 
     st.write(file, format='MSEED')
 
@@ -310,10 +315,10 @@ if input_args.grab_gps:
                          'exist.')
 
     # Unpack to vectors
-    (lat, lon, elev, sats) = gps_data
+    (gps_lats, gps_lons, elev, sats) = gps_data
 
     # Merge coordinates
-    output_coords = [np.median(lat), np.median(lon), np.median(elev)]
+    output_coords = [np.median(gps_lats), np.median(gps_lons), np.median(elev)]
 
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
@@ -328,59 +333,77 @@ if input_args.grab_gps:
 
     # Histogram prep
     INTERVAL = 0.00001
-    x_edges = np.linspace(lon.min() - INTERVAL / 2, lon.max() + INTERVAL / 2,
-                          int(round((lon.max() - lon.min()) / INTERVAL)) + 2)
-    y_edges = np.linspace(lat.min() - INTERVAL / 2, lat.max() + INTERVAL / 2,
-                          int(round((lat.max() - lat.min()) / INTERVAL)) + 2)
+    x_edges = np.linspace(gps_lons.min() - INTERVAL / 2,
+                          gps_lons.max() + INTERVAL / 2,
+                          int(round((gps_lons.max() -
+                                     gps_lons.min()) / INTERVAL)) + 2)
+    y_edges = np.linspace(gps_lats.min() - INTERVAL / 2,
+                          gps_lats.max() + INTERVAL / 2,
+                          int(round((gps_lats.max() -
+                                     gps_lats.min()) / INTERVAL)) + 2)
 
     # Create histogram
-    hist = np.histogram2d(lon, lat,
+    hist = np.histogram2d(gps_lons, gps_lats,
                           bins=[x_edges.round(6), y_edges.round(6)])[0]
     hist[hist == 0] = np.nan
     hist = hist.T
 
     # Create x and y coordinate vectors
-    xvec = np.linspace(lon.min(), lon.max(),
-                       int(round((lon.max()-lon.min())/INTERVAL))+1).round(5)
-    yvec = np.linspace(lat.min(), lat.max(),
-                       int(round((lat.max()-lat.min())/INTERVAL))+1).round(5)
+    xvec = np.linspace(gps_lons.min(), gps_lons.max(),
+                       int(round((gps_lons.max() -
+                                  gps_lons.min()) / INTERVAL)) + 1)
+    yvec = np.linspace(gps_lats.min(), gps_lats.max(),
+                       int(round((gps_lats.max() -
+                                  gps_lats.min()) / INTERVAL)) + 1)
     xx, yy = np.meshgrid(xvec, yvec)
 
-    # Convert to (x, y, counts) points
+    # Convert to (lat, lon, counts) points
     counts = hist.ravel()
     lons = xx.ravel()
     lats = yy.ravel()
+
+    # Convert from lat/lon to pseudoprojected x-y
+    x, y = [], []
+    for lat, lon in zip(lats, lons):
+        dist, az, _ = gps2dist_azimuth(*output_coords[0:2], lat, lon)
+        ang = (450 - az) % 360
+        x.append(dist * np.cos(np.deg2rad(ang)))
+        y.append(dist * np.sin(np.deg2rad(ang)))
+
+    # Convert to arrays
+    x, y = np.array(x), np.array(y)
 
     # Make a figure
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Plot all GPS points
-    sc = ax.scatter(lons, lats, c=counts, cmap='rainbow', zorder=3,
-                    clip_on=False)
+    sc = ax.scatter(x, y, c=counts, cmap='rainbow', zorder=3, clip_on=False)
 
     cbar = fig.colorbar(sc, label='Frequency')
 
     # Plot median coordinate
-    ax.scatter(*output_coords[0:2][::-1], s=180, facecolor='none',
-               edgecolor='black', zorder=3, clip_on=False,
-               label=f'{tuple(output_coords[0:2])}\n{output_coords[2]} m')
+    ax.scatter(0, 0, s=180, facecolor='none', edgecolor='black', zorder=3,
+               clip_on=False,
+               label=f'{tuple(output_coords[0:2])}\n'
+                     f'{output_coords[2]} m elevation')
 
     ax.legend(title='Median coordinate:')
 
     # Aesthetic improvements
-    ax.set_xlim(lon.min(), lon.max())
-    ax.set_ylim(lat.min(), lat.max())
     for axis in (ax.xaxis, ax.yaxis):
-        axis.set_major_locator(plt.MultipleLocator(5 * INTERVAL))
-        axis.set_major_formatter(plt.ScalarFormatter(useOffset=False))
+        axis.set_major_locator(plt.MultipleLocator(5))  # Ticks every 5 m
         axis.set_ticks_position('both')
     ax.minorticks_on()
-    fig.autofmt_xdate()
     ax.set_aspect('equal')
     ax.grid(linestyle=':')
 
-    ax.set_title(f'{lon.size:,} GPS points with at least {NUM_SATS} '
-                 'satellites', pad=20)
+    ax.set_xlabel('Easting from median coordinate (m)')
+    ax.set_ylabel('Northing from median coordinate (m)')
+
+    fmt = '%Y-%m-%d %H:%M:%S'
+    ax.set_title(f'{gps_lons.size:,} GPS points with at least {NUM_SATS} '
+                 f'satellites\n{t_min.strftime(fmt)} to {t_max.strftime(fmt)} '
+                 'UTC', pad=20)
 
     png_filename = json_filename.rstrip('.json') + '.png'
     fig.savefig(png_filename, dpi=300, bbox_inches='tight')
