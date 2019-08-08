@@ -13,7 +13,9 @@ desired length of time with specified metadata. Output miniSEED files are ready
 for IRIS upload and have units of Pa (although maybe we shouldn't apply the
 calibration? ...future change). The tool can differentiate between channels for
 3 channel DATA-CUBE files and optionally extract coordinates from the
-digitizer's GPS.
+digitizer's GPS. The code only looks for files from digitizers defined in the
+`digitizer_sensor_pairs.json` file. Therefore, this file must be updated if
+pairings change or new pairings are added.
 
 Supplemental files:
     * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairings
@@ -142,9 +144,9 @@ print(f'Location code: {loc}')
 print(f' Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir (only search for files with extensions
-# matching the codes included in digitizer_offsets.json)
+# matching the codes included in digitizer_sensor_pairs.json)
 raw_files = []
-for digitizer_code in digitizer_offsets.keys():
+for digitizer_code in digitizer_sensor_pairs.keys():
     raw_files += glob.glob(os.path.join(input_args.input_dir,
                                         '*.' + digitizer_code))
 raw_files.sort()  # Sort from earliest to latest in time
