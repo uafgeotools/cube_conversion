@@ -142,14 +142,17 @@ else:
 print(f'Location code: {loc}')
 print(f' Channel code: {input_args.channel}')
 
-# Gather info on files in the input dir
-raw_files = glob.glob(os.path.join(input_args.input_dir,
-                                   '*.[A-Z0-9][A-Z0-9][A-Z0-9]'))
-raw_files.sort()
-extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
-if not extensions:
+# Gather info on files in the input dir (only search for files with extensions
+# matching the codes included in digitizer_offsets.json)
+raw_files = []
+for digitizer_code in digitizer_offsets.keys():
+    raw_files += glob.glob(os.path.join(input_args.input_dir,
+                                        '*.' + digitizer_code))
+raw_files.sort()  # Sort from earliest to latest in time
+extensions = np.unique([f.split('.')[-1] for f in raw_files])
+if extensions.size is 0:
     raise FileNotFoundError('No raw files found.')
-elif len(extensions) is not 1:
+elif extensions.size is not 1:
     raise ValueError(f'Files from multiple digitizers found: {extensions}')
 
 # Create temporary processing directory in the output directory
@@ -214,7 +217,7 @@ for file in day_file_list:
 # metadata (automatically distinguish between a 3-element array or single
 # sensor)
 cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
-cut_file_list.sort()
+cut_file_list.sort()  # Sort from earliest to latest in time
 t_min, t_max = np.inf, -np.inf  # Initialize time bounds
 print('------------------------------------------------------------------')
 print(f'Adding metadata to {len(cut_file_list)} miniSEED file(s)...')
