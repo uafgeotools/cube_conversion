@@ -371,9 +371,9 @@ if input_args.grab_gps:
     x, y = [], []
     for lat, lon in zip(lats, lons):
         dist, az, _ = gps2dist_azimuth(*output_coords[0:2], lat, lon)
-        ang = (450 - az) % 360
-        x.append(dist * np.cos(np.deg2rad(ang)))
-        y.append(dist * np.sin(np.deg2rad(ang)))
+        ang = np.deg2rad((450 - az) % 360)  # [Radians]
+        x.append(dist * np.cos(ang))
+        y.append(dist * np.sin(ang))
 
     # Convert to arrays
     x, y = np.array(x), np.array(y)
