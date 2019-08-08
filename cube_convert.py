@@ -143,7 +143,8 @@ print(f'Location code: {loc}')
 print(f' Channel code: {input_args.channel}')
 
 # Gather info on files in the input dir
-raw_files = glob.glob(os.path.join(input_args.input_dir, '*.[A-Z][A-Z][A-Z]'))
+raw_files = glob.glob(os.path.join(input_args.input_dir,
+                                   '*.[A-Z0-9][A-Z0-9][A-Z0-9]'))
 raw_files.sort()
 extensions = np.unique([f.split('.')[-1] for f in raw_files]).tolist()
 if not extensions:
