@@ -384,7 +384,7 @@ if input_args.grab_gps:
     # Plot all GPS points
     sc = ax.scatter(x, y, c=counts, cmap='rainbow', zorder=3, clip_on=False)
 
-    cbar = fig.colorbar(sc, label='Frequency')
+    cbar = fig.colorbar(sc, label='Number of GPS points')
 
     # Plot median coordinate
     ax.scatter(0, 0, s=180, facecolor='none', edgecolor='black', zorder=3,
