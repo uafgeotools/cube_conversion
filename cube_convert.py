@@ -405,7 +405,7 @@ if input_args.grab_gps:
     ax.set_xlabel('Easting from median coordinate (m)')
     ax.set_ylabel('Northing from median coordinate (m)')
 
-    fmt = '%Y-%m-%d %H:%M:%S'
+    fmt = '%Y-%m-%d %H:%M'
     ax.set_title(f'{gps_lons.size:,} GPS points with at least {NUM_SATS} '
                  f'satellites\n{t_min.strftime(fmt)} to {t_max.strftime(fmt)} '
                  'UTC', pad=20)
