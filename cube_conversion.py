@@ -3,7 +3,7 @@
 # Contact: amiezzi@alaska.edu, dfee1@alaska.edu
 # Geophysical Institute: University of Alaska Fairbanks
 # Created: 03-Feb-2016
-# Last Revision: 04-June-2019
+# Last Revision: 12-August-2019
 ################################################################################################################
 # This code converts the UAF infrasound group DATA-CUBE files into miniseed files of a desired length of time with specified name
 # Output minseed data are ready for IRIS upload (although maybe we shouldn't apply the calib?...future change)
@@ -80,16 +80,28 @@ def get_sens_offset(drct,digitizer,sensor):
 
     return sens,offset_val
 
-sens,offset_val = get_sens_offset(drct,digitizer,sensor)     #get the unique sensitivty and digitizer offset
-#sens = .0090
-#offset_val = -0.01668703028331012549
-#sens = sens/4.5
-bweight = 2.44140625e-7 			# Bitweight in V/ct
-#bweight = 2.4064533177e-7 			# Bitweight in V/ct; from Jay's measurements
-calib = bweight/sens
-
-#reverse polarity list for 2016 Yasur deployment only!
+# The Yasur deployment had a polarity reversal at the Chap60 connector. 
+# Therefore, this list of station names will be multiplied by -1
+# The reversal was fixed prior to Summer 2017 deployments
 reverse_polarity_list = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6', 'YIFA', 'YIFB', 'YIFC', 'YIFD']
+
+###################################################
+### Choose either UAF or General Specifications ###
+###################################################
+
+# UAF Specifications
+# Use Lines 141-143; Comment out line 140
+sens,offset_val = get_sens_offset(digitizer,sensor)
+sens = sens/4.5						# Because of the BoB built by Jay and Alex
+bweight = 2.4064533177e-7 			# Bitweight in V/ct; given by Jay 
+
+
+# General Specifications
+# Use Line 140; Comment out lines 141-143
+#offset_val = 0
+#sens = 0.009						# Sensitivity
+#bweight = 2.44140625e-7 			# Bitweight in V/ct given by Albrecht
+#calib = bweight/sens
 
 
 #%%
@@ -125,10 +137,10 @@ for file in cut_file_list:
 	tr.stats.station = station_code
 	tr.stats.network = network_code
 	tr.stats.channel = channel_code
-	#tr.data = tr.data * calib
-	tr.data = tr.data * bweight
-	tr.data = tr.data + offset_val     #remove voltage offset
-	tr.data = tr.data / sens
+	#tr.data = tr.data * calib			# Use for general specifications
+	tr.data = tr.data * bweight 		# Use for UAF specifications
+	tr.data = tr.data + offset_val      # Use for UAF specifications; remove voltage offset
+	tr.data = tr.data / sens 			# Use for UAF specifications
 	if station_code in reverse_polarity_list:
 		tr.data = tr.data * -1
 	if file.endswith('.pri0'):
