@@ -80,7 +80,7 @@ def get_sens_offset(drct,digitizer,sensor):
 
     return sens,offset_val
 
-# The Yasur deployment had a polarity reversal at the Chap60 connector. 
+# The Yasur deployment had a polarity reversal at the Chap60 connector.
 # Therefore, this list of station names will be multiplied by -1
 # The reversal was fixed prior to Summer 2017 deployments
 reverse_polarity_list = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6', 'YIFA', 'YIFB', 'YIFC', 'YIFD']
@@ -93,7 +93,7 @@ reverse_polarity_list = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6', 'YIFA',
 # Use Lines 141-143; Comment out line 140
 sens,offset_val = get_sens_offset(digitizer,sensor)
 sens = sens/4.5						# Because of the BoB built by Jay and Alex
-bweight = 2.4064533177e-7 			# Bitweight in V/ct; given by Jay 
+bweight = 2.4064533177e-7 			# Bitweight in V/ct; given by Jay
 
 
 # General Specifications
