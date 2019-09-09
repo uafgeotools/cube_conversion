@@ -15,7 +15,9 @@ calibration? ...future change). The tool can differentiate between channels for
 3 channel DATA-CUBE files and optionally extract coordinates from the
 digitizer's GPS. The code only looks for files from digitizers defined in the
 `digitizer_sensor_pairs.json` file. Therefore, this file must be updated if
-pairings change or new pairings are added.
+pairings change or new pairings are added. The user can specify a custom
+"breakout box factor" for setups that modify the signal voltage via a voltage
+divider.
 
 Supplemental files:
     * digitizer_sensor_pairs.json   <-- UAF digitizer-sensor pairs (EDIT ME!)
@@ -92,6 +94,10 @@ parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
                     help='additionally extract coordinates from digitizer GPS')
+parser.add_argument('--bob-factor', default=None, type=float,
+                    dest='breakout_box_factor',
+                    help='factor by which to divide sensitivity values (for '
+                         'custom breakout boxes)')
 input_args = parser.parse_args()
 
 # Check if input directory is valid
@@ -180,6 +186,12 @@ except KeyError:
                   f'{DEFAULT_SENSITIVITY} V/Pa.')
     sensitivity = DEFAULT_SENSITIVITY
 print(f'       Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
+
+# Apply breakout box correction factor if provided
+if input_args.breakout_box_factor:
+    sensitivity = sensitivity / input_args.breakout_box_factor
+    print('       Dividing sensitivity by breakout box factor of '
+          f'{input_args.breakout_box_factor}')
 
 print('------------------------------------------------------------------')
 print(f'Running cube2mseed on {len(raw_files)} raw file(s)...')
