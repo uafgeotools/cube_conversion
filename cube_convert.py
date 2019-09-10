@@ -88,8 +88,9 @@ parser.add_argument('location',
                          'automatically for 3 channel DATA-CUBE files)',
                     choices=['01', '02', '03', '04', 'AUTO'])
 parser.add_argument('channel',
-                    help='desired SEED channel code',
-                    choices=['BDF', 'HDF', 'DDF'])
+                    help='desired SEED channel code (if AUTO, determined'
+                         'automatically using seed convention (preferred))',
+                    choices=['AUTO','BDF', 'HDF', 'DDF'])
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
@@ -240,7 +241,18 @@ for file in cut_file_list:
     tr = st[0]
     tr.stats.network = input_args.network
     tr.stats.station = input_args.station
-    tr.stats.channel = input_args.channel
+    if input_args.channel == 'AUTO':
+        if 10 <= tr.stats.sampling_rate >80:
+            channel_id = 'BDF'
+        elif  80 <= tr.stats.sampling_rate >250:
+            channel_id = 'HDF'
+        elif  250 <= tr.stats.sampling_rate >1000:
+            channel_id = 'DDF'
+    else:
+        channel_id = input_args.channel
+        tr.stats.channel = input_args.channel
+    tr.stats.channel = channel_id
+
     tr.data = tr.data * BITWEIGHT    # Convert from counts to V
     tr.data = tr.data + offset       # Remove voltage offset
     tr.data = tr.data / sensitivity  # Convert from V to Pa
@@ -272,7 +284,7 @@ for file in cut_file_list:
 
     # Define template for miniSEED renaming
     name_template = (f'{input_args.network}.{input_args.station}'
-                     f'.{location_id}.{input_args.channel}.%Y.%j.%H')
+                     f'.{location_id}.{channel_id}.%Y.%j.%H')
 
     # Rename cut files and place in output directory
     args = ['mseedrename', f'--template={name_template}', '--force-overwrite',
@@ -340,7 +352,7 @@ if input_args.grab_gps:
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
                                  f'{input_args.network}.{input_args.station}'
-                                 f'.{input_args.location}.{input_args.channel}'
+                                 f'.{location_id}.{channel_id}'
                                  '.json')
     with open(json_filename, 'w') as f:
         json.dump(output_coords, f)
