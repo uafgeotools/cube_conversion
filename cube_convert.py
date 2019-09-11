@@ -88,9 +88,9 @@ parser.add_argument('location',
                          'automatically for 3 channel DATA-CUBE files)',
                     choices=['01', '02', '03', '04', 'AUTO'])
 parser.add_argument('channel',
-                    help='desired SEED channel code (if AUTO, determined'
-                         'automatically using seed convention (preferred))',
-                    choices=['AUTO','BDF', 'HDF', 'DDF'])
+                    help='desired SEED channel code (if AUTO, determine '
+                         'automatically using SEED convention [preferred])',
+                    choices=['AUTO', 'BDF', 'HDF', 'DDF'])
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
@@ -148,7 +148,11 @@ if input_args.location == 'AUTO':
 else:
     loc = input_args.location
 print(f'Location code: {loc}')
-print(f' Channel code: {input_args.channel}')
+if input_args.channel == 'AUTO':
+    cha = 'Automatic'
+else:
+    cha = input_args.channel
+print(f' Channel code: {cha}')
 
 # Gather info on files in the input dir (only search for files with extensions
 # matching the codes included in `digitizer_sensor_pairs.json`)
@@ -241,16 +245,19 @@ for file in cut_file_list:
     tr = st[0]
     tr.stats.network = input_args.network
     tr.stats.station = input_args.station
+
     if input_args.channel == 'AUTO':
-        if 10 <= tr.stats.sampling_rate >80:
+        if 10 <= tr.stats.sampling_rate < 80:
             channel_id = 'BDF'
-        elif  80 <= tr.stats.sampling_rate >250:
+        elif 80 <= tr.stats.sampling_rate < 250:
             channel_id = 'HDF'
-        elif  250 <= tr.stats.sampling_rate >1000:
+        elif 250 <= tr.stats.sampling_rate < 1000:
             channel_id = 'DDF'
+        else:
+            raise ValueError  # If the sampling rate is < 10 or >= 1000 Hz
     else:
         channel_id = input_args.channel
-        tr.stats.channel = input_args.channel
+
     tr.stats.channel = channel_id
 
     tr.data = tr.data * BITWEIGHT    # Convert from counts to V
@@ -352,7 +359,7 @@ if input_args.grab_gps:
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
                                  f'{input_args.network}.{input_args.station}'
-                                 f'.{location_id}.{channel_id}'
+                                 f'.{input_args.location}.{channel_id}'
                                  '.json')
     with open(json_filename, 'w') as f:
         json.dump(output_coords, f)
