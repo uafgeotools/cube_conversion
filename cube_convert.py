@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to '
                                              'Optionally extract coordinates '
                                              'from digitizer GPS.',
                                  allow_abbrev=False)
-parser.add_argument('input_dir',
+parser.add_argument('input_dir', nargs='+',
                     help='directory containing raw DATA-CUBE files (all files '
                          'must originate from a single digitizer)')
 parser.add_argument('output_dir',
@@ -64,9 +64,11 @@ parser.add_argument('--bob-factor', default=None, type=float,
 input_args = parser.parse_args()
 
 # Check if input directory is valid
-if not os.path.exists(input_args.input_dir):
-    raise NotADirectoryError(f'Input directory \'{input_args.input_dir}\' '
-                             'doesn\'t exist.')
+print(input_args.input_dir)
+for input_folders in input_args.input_dir:
+    if not os.path.exists(input_folders):
+        raise NotADirectoryError(f'Input directory \'{input_folders}\' '
+                                 'doesn\'t exist.')
 
 # Check if output directory is valid
 if not os.path.exists(input_args.output_dir):
@@ -120,8 +122,9 @@ print(f' Channel code: {cha}')
 # matching the codes included in `digitizer_sensor_pairs.json`)
 raw_files = []
 for digitizer_code in digitizer_sensor_pairs.keys():
-    raw_files += glob.glob(os.path.join(input_args.input_dir,
-                                        '*.' + digitizer_code))
+    for input_folders in input_args.input_dir:
+        raw_files += glob.glob(os.path.join(input_folders,
+                                            '*.' + digitizer_code))
 raw_files.sort()  # Sort from earliest to latest in time
 extensions = np.unique([f.split('.')[-1] for f in raw_files])
 if extensions.size is 0:
