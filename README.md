@@ -14,12 +14,13 @@ via a voltage divider.
 Dependencies
 ------------
 
+* [Python](https://www.python.org/) >= 3.2
+
 Python packages:
 
-* [Python](https://www.python.org/) >= 3.2
 * [ObsPy](http://docs.obspy.org/)
 
-...and their dependencies, which you don't really have to be concerned about if
+...and its dependencies, which you don't really have to be concerned about if
 you're using [conda](https://docs.conda.io/projects/conda/en/latest/index.html)!
 
 It's recommended that you create a new conda environment to use with this
