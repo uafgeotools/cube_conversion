@@ -66,6 +66,8 @@ input_args = parser.parse_args()
 # Check if input directory is valid
 print(input_args.input_dir)
 for input_folders in input_args.input_dir:
+    if input_folders == 'input_dir' or input_folders == 'output_dir':
+        continue
     if not os.path.exists(input_folders):
         raise NotADirectoryError(f'Input directory \'{input_folders}\' '
                                  'doesn\'t exist.')
