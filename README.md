@@ -14,6 +14,8 @@ via a voltage divider.
 Dependencies
 ------------
 
+Python packages:
+
 * [Python](https://www.python.org/) >= 3.2
 * [ObsPy](http://docs.obspy.org/)
 
