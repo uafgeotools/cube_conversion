@@ -218,7 +218,7 @@ for file in cut_file_list:
         elif 250 <= tr.stats.sampling_rate < 1000:
             channel_id = 'DDF'
         else:
-            raise ValueError  # If the sampling rate is < 10 or >= 1000 Hz
+            raise ValueError('Sampling rate is < 10 or >= 1000 Hz!')
     else:
         channel_id = input_args.channel
 
@@ -241,7 +241,7 @@ for file in cut_file_list:
             location_id = '03'
             channel_pattern = '*.pri2'
         else:
-            raise ValueError  # Should never reach this statement
+            raise ValueError(f'File {file} not recognized.')
     else:
         location_id = input_args.location
         channel_pattern = '*.pri?'  # Use all files
