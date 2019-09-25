@@ -67,8 +67,6 @@ input_args = parser.parse_args()
 # Check if input directory is valid
 print(input_args.input_dir)
 for input_folders in input_args.input_dir:
-    if input_folders == 'input_dir' or input_folders == 'output_dir':
-        continue
     if not os.path.exists(input_folders):
         raise NotADirectoryError(f'Input directory \'{input_folders}\' '
                                  'doesn\'t exist.')
@@ -322,21 +320,16 @@ if input_args.grab_gps:
     (gps_lats, gps_lons, elev, sats) = gps_data
 
     # Merge coordinates
-    output_coords = [stats.mode(gps_lats)[0][0], stats.mode(gps_lons)[0][0], stats.mode(elev)[0][0]]
-    print(output_coords)
+    # output_coords = [stats.mode(gps_lats)[0][0], stats.mode(gps_lons)[0][0], stats.mode(elev)[0][0]]
+    # print(output_coords)
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
-    json_filename = os.path.join(input_args.output_dir,
-                                 f'{input_args.network}.{input_args.station}'
-                                 f'.{input_args.location}.{channel_id}'
-                                 '.json')
-    with open(json_filename, 'w') as f:
-        json.dump(output_coords, f)
-        f.write('\n')
 
-    print(f'Coordinates exported to {os.path.basename(json_filename)}')
+
+
 
     # Histogram prep
     INTERVAL = 0.00001
+    INTERVALz = 1
     x_edges = np.linspace(gps_lons.min() - INTERVAL / 2,
                           gps_lons.max() + INTERVAL / 2,
                           int(round((gps_lons.max() -
@@ -345,24 +338,46 @@ if input_args.grab_gps:
                           gps_lats.max() + INTERVAL / 2,
                           int(round((gps_lats.max() -
                                      gps_lats.min()) / INTERVAL)) + 2)
+    z_edges = np.linspace(elev.min() - INTERVALz / 2,
+                          elev.max() + INTERVALz / 2,
+                          int(round((elev.max() -
+                                     elev.min()) / INTERVALz)) + 2)
 
     # Create histogram
-    hist = np.histogram2d(gps_lons, gps_lats,
-                          bins=[x_edges.round(6), y_edges.round(6)])[0]
+    # hist = np.histogram2d(gps_lons, gps_lats,
+    #                       bins=[x_edges.round(6), y_edges.round(6)])[0]
+    hist = np.histogramdd((gps_lons, gps_lats, elev),
+                          bins=[x_edges.round(6), y_edges.round(6), z_edges])[0]
     hist[hist == 0] = np.nan
-    hist = hist.T
+    #hist = hist.T
+
+    ix,iy,iz = np.where(hist==np.nanmax(hist))
 
     # Create x and y coordinate vectors
     xvec = np.linspace(gps_lons.min(), gps_lons.max(),
                        int(round((gps_lons.max() -
-                                  gps_lons.min()) / INTERVAL)) + 1)
+                                  gps_lons.min()) / INTERVAL)) + 1).round(6)
     yvec = np.linspace(gps_lats.min(), gps_lats.max(),
                        int(round((gps_lats.max() -
-                                  gps_lats.min()) / INTERVAL)) + 1)
+                                  gps_lats.min()) / INTERVAL)) + 1).round(6)
+    zvec = np.linspace(elev.min(), elev.max(),
+                       int(round((elev.max() -
+                                  elev.min()) / INTERVALz)) + 1)
     xx, yy = np.meshgrid(xvec, yvec)
 
+    output_coords = [ yvec[iy[0]],xvec[ix[0]], zvec[iz[0]]]
+    json_filename = os.path.join(input_args.output_dir,
+                                 f'{input_args.network}.{input_args.station}'
+                                 f'.{input_args.location}.{channel_id}'
+                                 '.json')
+    with open(json_filename, 'w') as f:
+        json.dump(output_coords, f)
+        f.write('\n')
+    print(f'Coordinates exported to {os.path.basename(json_filename)}')
+
     # Convert to (lat, lon, counts) points
-    counts = hist.ravel()
+    hist2d = hist[:,:,iz[0]].T
+    counts = hist2d.ravel()
     lons = xx.ravel()
     lats = yy.ravel()
 
