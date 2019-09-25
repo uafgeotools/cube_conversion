@@ -318,42 +318,36 @@ if input_args.grab_gps:
     (gps_lats, gps_lons, elev, sats) = gps_data
 
     # Histogram prep
-    INTERVAL_XY = 0.00001  # [deg.]
-    INTERVAL_Z = 1         # [m]
-    x_edges = np.linspace(gps_lons.min() - INTERVAL_XY / 2,
-                          gps_lons.max() + INTERVAL_XY / 2,
+    INTERVAL = 0.00001  # [deg.]
+    x_edges = np.linspace(gps_lons.min() - INTERVAL / 2,
+                          gps_lons.max() + INTERVAL / 2,
                           int(round((gps_lons.max() -
-                                     gps_lons.min()) / INTERVAL_XY)) + 2)
-    y_edges = np.linspace(gps_lats.min() - INTERVAL_XY / 2,
-                          gps_lats.max() + INTERVAL_XY / 2,
+                                     gps_lons.min()) / INTERVAL)) + 2)
+    y_edges = np.linspace(gps_lats.min() - INTERVAL / 2,
+                          gps_lats.max() + INTERVAL / 2,
                           int(round((gps_lats.max() -
-                                     gps_lats.min()) / INTERVAL_XY)) + 2)
-    z_edges = np.linspace(elev.min() - INTERVAL_Z / 2,
-                          elev.max() + INTERVAL_Z / 2,
-                          int(round((elev.max() -
-                                     elev.min()) / INTERVAL_Z)) + 2)
+                                     gps_lats.min()) / INTERVAL)) + 2)
 
     # Create histogram
-    hist = np.histogramdd((gps_lons, gps_lats, elev),
-                          bins=[x_edges.round(6), y_edges.round(6), z_edges])[0]
+    hist = np.histogram2d(gps_lons, gps_lats,
+                          bins=[x_edges.round(6), y_edges.round(6)])[0]
     hist[hist == 0] = np.nan
+    hist = hist.T
 
     # Find index locations of maximum counts
-    ix, iy, iz = np.where(hist == np.nanmax(hist))
+    iy, ix = np.where(hist == np.nanmax(hist))
 
-    # Create x, y, and z coordinate vectors
+    # Create x and y coordinate vectors of appropriate precision
     xvec = np.linspace(gps_lons.min(), gps_lons.max(),
                        int(round((gps_lons.max() -
-                                  gps_lons.min()) / INTERVAL_XY)) + 1).round(5)
+                                  gps_lons.min()) / INTERVAL)) + 1).round(5)
     yvec = np.linspace(gps_lats.min(), gps_lats.max(),
                        int(round((gps_lats.max() -
-                                  gps_lats.min()) / INTERVAL_XY)) + 1).round(5)
-    zvec = np.linspace(elev.min(), elev.max(),
-                       int(round((elev.max() -
-                                  elev.min()) / INTERVAL_Z)) + 1)
+                                  gps_lats.min()) / INTERVAL)) + 1).round(5)
 
     # Merge coordinates (taking first maximum if multiple exist in histogram!)
-    output_coords = [yvec[iy[0]], xvec[ix[0]], zvec[iz[0]]]
+    # (x, y) are the peak of the 2-D histogram, z is simply the median
+    output_coords = [yvec[iy[0]], xvec[ix[0]], np.median(elev)]
 
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
@@ -363,13 +357,14 @@ if input_args.grab_gps:
     with open(json_filename, 'w') as f:
         json.dump(output_coords, f)
         f.write('\n')
+
     print(f'Coordinates exported to {os.path.basename(json_filename)}')
 
     # Convert to (lat, lon, counts) points
-    counts = hist[:, :, iz[0]].T.ravel()  # 2-D slice through 3-D volume
     xx, yy = np.meshgrid(xvec, yvec)
     lons = xx.ravel()
     lats = yy.ravel()
+    counts = hist.ravel()
 
     # Convert from lat/lon to pseudoprojected x-y
     x, y = [], []
