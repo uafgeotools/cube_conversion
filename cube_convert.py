@@ -9,6 +9,7 @@ from obspy.geodetics import gps2dist_azimuth
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+from scipy import stats
 
 # -----------------------------------------------------------------------------
 # Advanced configuration options
@@ -321,8 +322,8 @@ if input_args.grab_gps:
     (gps_lats, gps_lons, elev, sats) = gps_data
 
     # Merge coordinates
-    output_coords = [np.median(gps_lats), np.median(gps_lons), np.median(elev)]
-
+    output_coords = [stats.mode(gps_lats)[0][0], stats.mode(gps_lons)[0][0], stats.mode(elev)[0][0]]
+    print(output_coords)
     # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
                                  f'{input_args.network}.{input_args.station}'
@@ -384,13 +385,13 @@ if input_args.grab_gps:
 
     cbar = fig.colorbar(sc, label='Number of GPS points')
 
-    # Plot median coordinate
+    # Plot mode coordinate
     ax.scatter(0, 0, s=180, facecolor='none', edgecolor='black', zorder=3,
                clip_on=False,
                label=f'{tuple(output_coords[0:2])}\n'
                      f'{output_coords[2]} m elevation')
 
-    ax.legend(title='Median coordinate:')
+    ax.legend(title='Mode coordinate:')
 
     # Aesthetic improvements
     for axis in (ax.xaxis, ax.yaxis):
@@ -400,8 +401,8 @@ if input_args.grab_gps:
     ax.set_aspect('equal')
     ax.grid(linestyle=':')
 
-    ax.set_xlabel('Easting from median coordinate (m)')
-    ax.set_ylabel('Northing from median coordinate (m)')
+    ax.set_xlabel('Easting from mode coordinate (m)')
+    ax.set_ylabel('Northing from mode coordinate (m)')
 
     fmt = '%Y-%m-%d %H:%M'
     ax.set_title(f'{gps_lons.size:,} GPS points with at least {NUM_SATS} '
