@@ -37,8 +37,9 @@ parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to '
                                              'from digitizer GPS.',
                                  allow_abbrev=False)
 parser.add_argument('input_dir', nargs='+',
-                    help='directory containing raw DATA-CUBE files (all files '
-                         'must originate from a single digitizer)')
+                    help='one or more directories containing raw DATA-CUBE '
+                         'files (all files must originate from a single '
+                         'digitizer) [wildcards (*) supported]')
 parser.add_argument('output_dir',
                     help='directory for output miniSEED and GPS-related files')
 parser.add_argument('network',
@@ -64,12 +65,11 @@ parser.add_argument('--bob-factor', default=None, type=float,
                          'custom breakout boxes)')
 input_args = parser.parse_args()
 
-# Check if input directory is valid
-print(input_args.input_dir)
-for input_folders in input_args.input_dir:
-    if not os.path.exists(input_folders):
-        raise NotADirectoryError(f'Input directory \'{input_folders}\' '
-                                 'doesn\'t exist.')
+# Check if input directory/ies is/are valid
+for input_dir in input_args.input_dir:
+    if not os.path.exists(input_dir):
+        raise NotADirectoryError(f'Input directory \'{input_dir}\' doesn\'t '
+                                 'exist.')
 
 # Check if output directory is valid
 if not os.path.exists(input_args.output_dir):
@@ -119,13 +119,12 @@ else:
     cha = input_args.channel
 print(f' Channel code: {cha}')
 
-# Gather info on files in the input dir (only search for files with extensions
-# matching the codes included in `digitizer_sensor_pairs.json`)
+# Gather info on files in the input dir(s) (only search for files with
+# extensions matching the codes included in `digitizer_sensor_pairs.json`)
 raw_files = []
 for digitizer_code in digitizer_sensor_pairs.keys():
-    for input_folders in input_args.input_dir:
-        raw_files += glob.glob(os.path.join(input_folders,
-                                            '*.' + digitizer_code))
+    for input_dir in input_args.input_dir:
+        raw_files += glob.glob(os.path.join(input_dir, '*.' + digitizer_code))
 raw_files.sort()  # Sort from earliest to latest in time
 extensions = np.unique([f.split('.')[-1] for f in raw_files])
 if extensions.size is 0:
