@@ -9,7 +9,6 @@ from obspy.geodetics import gps2dist_azimuth
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-from scipy import stats
 
 # -----------------------------------------------------------------------------
 # Advanced configuration options
@@ -318,53 +317,45 @@ if input_args.grab_gps:
     # Unpack to vectors
     (gps_lats, gps_lons, elev, sats) = gps_data
 
-    # Merge coordinates
-    # output_coords = [stats.mode(gps_lats)[0][0], stats.mode(gps_lons)[0][0], stats.mode(elev)[0][0]]
-    # print(output_coords)
-    # Write to JSON file - format is [lat, lon, elev] with elevation in meters
-
-
-
-
     # Histogram prep
-    INTERVAL = 0.00001
-    INTERVALz = 1
-    x_edges = np.linspace(gps_lons.min() - INTERVAL / 2,
-                          gps_lons.max() + INTERVAL / 2,
+    INTERVAL_XY = 0.00001  # [deg.]
+    INTERVAL_Z = 1         # [m]
+    x_edges = np.linspace(gps_lons.min() - INTERVAL_XY / 2,
+                          gps_lons.max() + INTERVAL_XY / 2,
                           int(round((gps_lons.max() -
-                                     gps_lons.min()) / INTERVAL)) + 2)
-    y_edges = np.linspace(gps_lats.min() - INTERVAL / 2,
-                          gps_lats.max() + INTERVAL / 2,
+                                     gps_lons.min()) / INTERVAL_XY)) + 2)
+    y_edges = np.linspace(gps_lats.min() - INTERVAL_XY / 2,
+                          gps_lats.max() + INTERVAL_XY / 2,
                           int(round((gps_lats.max() -
-                                     gps_lats.min()) / INTERVAL)) + 2)
-    z_edges = np.linspace(elev.min() - INTERVALz / 2,
-                          elev.max() + INTERVALz / 2,
+                                     gps_lats.min()) / INTERVAL_XY)) + 2)
+    z_edges = np.linspace(elev.min() - INTERVAL_Z / 2,
+                          elev.max() + INTERVAL_Z / 2,
                           int(round((elev.max() -
-                                     elev.min()) / INTERVALz)) + 2)
+                                     elev.min()) / INTERVAL_Z)) + 2)
 
     # Create histogram
-    # hist = np.histogram2d(gps_lons, gps_lats,
-    #                       bins=[x_edges.round(6), y_edges.round(6)])[0]
     hist = np.histogramdd((gps_lons, gps_lats, elev),
                           bins=[x_edges.round(6), y_edges.round(6), z_edges])[0]
     hist[hist == 0] = np.nan
-    #hist = hist.T
 
-    ix,iy,iz = np.where(hist==np.nanmax(hist))
+    # Find index locations of maximum counts
+    ix, iy, iz = np.where(hist == np.nanmax(hist))
 
-    # Create x and y coordinate vectors
+    # Create x, y, and z coordinate vectors
     xvec = np.linspace(gps_lons.min(), gps_lons.max(),
                        int(round((gps_lons.max() -
-                                  gps_lons.min()) / INTERVAL)) + 1).round(6)
+                                  gps_lons.min()) / INTERVAL_XY)) + 1).round(5)
     yvec = np.linspace(gps_lats.min(), gps_lats.max(),
                        int(round((gps_lats.max() -
-                                  gps_lats.min()) / INTERVAL)) + 1).round(6)
+                                  gps_lats.min()) / INTERVAL_XY)) + 1).round(5)
     zvec = np.linspace(elev.min(), elev.max(),
                        int(round((elev.max() -
-                                  elev.min()) / INTERVALz)) + 1)
-    xx, yy = np.meshgrid(xvec, yvec)
+                                  elev.min()) / INTERVAL_Z)) + 1)
 
-    output_coords = [ yvec[iy[0]],xvec[ix[0]], zvec[iz[0]]]
+    # Merge coordinates (taking first maximum if multiple exist in histogram!)
+    output_coords = [yvec[iy[0]], xvec[ix[0]], zvec[iz[0]]]
+
+    # Write to JSON file - format is [lat, lon, elev] with elevation in meters
     json_filename = os.path.join(input_args.output_dir,
                                  f'{input_args.network}.{input_args.station}'
                                  f'.{input_args.location}.{channel_id}'
@@ -375,8 +366,8 @@ if input_args.grab_gps:
     print(f'Coordinates exported to {os.path.basename(json_filename)}')
 
     # Convert to (lat, lon, counts) points
-    hist2d = hist[:,:,iz[0]].T
-    counts = hist2d.ravel()
+    counts = hist[:, :, iz[0]].T.ravel()  # 2-D slice through 3-D volume
+    xx, yy = np.meshgrid(xvec, yvec)
     lons = xx.ravel()
     lats = yy.ravel()
 
@@ -399,13 +390,13 @@ if input_args.grab_gps:
 
     cbar = fig.colorbar(sc, label='Number of GPS points')
 
-    # Plot mode coordinate
+    # Plot most common coordinate
     ax.scatter(0, 0, s=180, facecolor='none', edgecolor='black', zorder=3,
                clip_on=False,
                label=f'{tuple(output_coords[0:2])}\n'
                      f'{output_coords[2]} m elevation')
 
-    ax.legend(title='Mode coordinate:')
+    ax.legend(title='Most common coordinate:')
 
     # Aesthetic improvements
     for axis in (ax.xaxis, ax.yaxis):
@@ -415,8 +406,8 @@ if input_args.grab_gps:
     ax.set_aspect('equal')
     ax.grid(linestyle=':')
 
-    ax.set_xlabel('Easting from mode coordinate (m)')
-    ax.set_ylabel('Northing from mode coordinate (m)')
+    ax.set_xlabel('Easting from most common coordinate (m)')
+    ax.set_ylabel('Northing from most common coordinate (m)')
 
     fmt = '%Y-%m-%d %H:%M'
     ax.set_title(f'{gps_lons.size:,} GPS points with at least {NUM_SATS} '
