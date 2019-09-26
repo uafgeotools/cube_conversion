@@ -35,9 +35,10 @@ parser = argparse.ArgumentParser(description='Convert DATA-CUBE files to '
                                              'Optionally extract coordinates '
                                              'from digitizer GPS.',
                                  allow_abbrev=False)
-parser.add_argument('input_dir',
-                    help='directory containing raw DATA-CUBE files (all files '
-                         'must originate from a single digitizer)')
+parser.add_argument('input_dir', nargs='+',
+                    help='one or more directories containing raw DATA-CUBE '
+                         'files (all files must originate from a single '
+                         'digitizer) [wildcards (*) supported]')
 parser.add_argument('output_dir',
                     help='directory for output miniSEED and GPS-related files')
 parser.add_argument('network',
@@ -63,10 +64,11 @@ parser.add_argument('--bob-factor', default=None, type=float,
                          'custom breakout boxes)')
 input_args = parser.parse_args()
 
-# Check if input directory is valid
-if not os.path.exists(input_args.input_dir):
-    raise NotADirectoryError(f'Input directory \'{input_args.input_dir}\' '
-                             'doesn\'t exist.')
+# Check if input directory/ies is/are valid
+for input_dir in input_args.input_dir:
+    if not os.path.exists(input_dir):
+        raise NotADirectoryError(f'Input directory \'{input_dir}\' doesn\'t '
+                                 'exist.')
 
 # Check if output directory is valid
 if not os.path.exists(input_args.output_dir):
@@ -116,12 +118,12 @@ else:
     cha = input_args.channel
 print(f' Channel code: {cha}')
 
-# Gather info on files in the input dir (only search for files with extensions
-# matching the codes included in `digitizer_sensor_pairs.json`)
+# Gather info on files in the input dir(s) (only search for files with
+# extensions matching the codes included in `digitizer_sensor_pairs.json`)
 raw_files = []
 for digitizer_code in digitizer_sensor_pairs.keys():
-    raw_files += glob.glob(os.path.join(input_args.input_dir,
-                                        '*.' + digitizer_code))
+    for input_dir in input_args.input_dir:
+        raw_files += glob.glob(os.path.join(input_dir, '*.' + digitizer_code))
 raw_files.sort()  # Sort from earliest to latest in time
 extensions = np.unique([f.split('.')[-1] for f in raw_files])
 if extensions.size is 0:
@@ -216,7 +218,7 @@ for file in cut_file_list:
         elif 250 <= tr.stats.sampling_rate < 1000:
             channel_id = 'DDF'
         else:
-            raise ValueError  # If the sampling rate is < 10 or >= 1000 Hz
+            raise ValueError('Sampling rate is < 10 or >= 1000 Hz!')
     else:
         channel_id = input_args.channel
 
@@ -239,7 +241,7 @@ for file in cut_file_list:
             location_id = '03'
             channel_pattern = '*.pri2'
         else:
-            raise ValueError  # Should never reach this statement
+            raise ValueError(f'File {file} not recognized.')
     else:
         location_id = input_args.location
         channel_pattern = '*.pri?'  # Use all files
@@ -315,22 +317,8 @@ if input_args.grab_gps:
     # Unpack to vectors
     (gps_lats, gps_lons, elev, sats) = gps_data
 
-    # Merge coordinates
-    output_coords = [np.median(gps_lats), np.median(gps_lons), np.median(elev)]
-
-    # Write to JSON file - format is [lat, lon, elev] with elevation in meters
-    json_filename = os.path.join(input_args.output_dir,
-                                 f'{input_args.network}.{input_args.station}'
-                                 f'.{input_args.location}.{channel_id}'
-                                 '.json')
-    with open(json_filename, 'w') as f:
-        json.dump(output_coords, f)
-        f.write('\n')
-
-    print(f'Coordinates exported to {os.path.basename(json_filename)}')
-
     # Histogram prep
-    INTERVAL = 0.00001
+    INTERVAL = 0.00001  # [deg.]
     x_edges = np.linspace(gps_lons.min() - INTERVAL / 2,
                           gps_lons.max() + INTERVAL / 2,
                           int(round((gps_lons.max() -
@@ -346,19 +334,37 @@ if input_args.grab_gps:
     hist[hist == 0] = np.nan
     hist = hist.T
 
-    # Create x and y coordinate vectors
+    # Find index locations of maximum counts
+    iy, ix = np.where(hist == np.nanmax(hist))
+
+    # Create x and y coordinate vectors of appropriate precision
     xvec = np.linspace(gps_lons.min(), gps_lons.max(),
                        int(round((gps_lons.max() -
-                                  gps_lons.min()) / INTERVAL)) + 1)
+                                  gps_lons.min()) / INTERVAL)) + 1).round(5)
     yvec = np.linspace(gps_lats.min(), gps_lats.max(),
                        int(round((gps_lats.max() -
-                                  gps_lats.min()) / INTERVAL)) + 1)
-    xx, yy = np.meshgrid(xvec, yvec)
+                                  gps_lats.min()) / INTERVAL)) + 1).round(5)
+
+    # Merge coordinates (taking first maximum if multiple exist in histogram!)
+    # (x, y) are the peak of the 2-D histogram, z is simply the median
+    output_coords = [yvec[iy[0]], xvec[ix[0]], np.median(elev)]
+
+    # Write to JSON file - format is [lat, lon, elev] with elevation in meters
+    json_filename = os.path.join(input_args.output_dir,
+                                 f'{input_args.network}.{input_args.station}'
+                                 f'.{input_args.location}.{channel_id}'
+                                 '.json')
+    with open(json_filename, 'w') as f:
+        json.dump(output_coords, f)
+        f.write('\n')
+
+    print(f'Coordinates exported to {os.path.basename(json_filename)}')
 
     # Convert to (lat, lon, counts) points
-    counts = hist.ravel()
+    xx, yy = np.meshgrid(xvec, yvec)
     lons = xx.ravel()
     lats = yy.ravel()
+    counts = hist.ravel()
 
     # Convert from lat/lon to pseudoprojected x-y
     x, y = [], []
@@ -379,13 +385,13 @@ if input_args.grab_gps:
 
     cbar = fig.colorbar(sc, label='Number of GPS points')
 
-    # Plot median coordinate
+    # Plot most common coordinate
     ax.scatter(0, 0, s=180, facecolor='none', edgecolor='black', zorder=3,
                clip_on=False,
                label=f'{tuple(output_coords[0:2])}\n'
                      f'{output_coords[2]} m elevation')
 
-    ax.legend(title='Median coordinate:')
+    ax.legend(title='Most common coordinate:')
 
     # Aesthetic improvements
     for axis in (ax.xaxis, ax.yaxis):
@@ -395,8 +401,8 @@ if input_args.grab_gps:
     ax.set_aspect('equal')
     ax.grid(linestyle=':')
 
-    ax.set_xlabel('Easting from median coordinate (m)')
-    ax.set_ylabel('Northing from median coordinate (m)')
+    ax.set_xlabel('Easting from most common coordinate (m)')
+    ax.set_ylabel('Northing from most common coordinate (m)')
 
     fmt = '%Y-%m-%d %H:%M'
     ax.set_title(f'{gps_lons.size:,} GPS points with at least {NUM_SATS} '

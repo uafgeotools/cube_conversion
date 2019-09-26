@@ -63,15 +63,16 @@ You'll see the following help menu:
 ```
 usage: cube_convert.py [-h] [-v] [--grab-gps]
                        [--bob-factor BREAKOUT_BOX_FACTOR]
-                       input_dir output_dir network station {01,02,03,04,AUTO}
-                       {AUTO,BDF,HDF,DDF}
+                       input_dir [input_dir ...] output_dir network station
+                       {01,02,03,04,AUTO} {AUTO,BDF,HDF,DDF}
 
 Convert DATA-CUBE files to miniSEED files while trimming, adding metadata, and
 renaming. Optionally extract coordinates from digitizer GPS.
 
 positional arguments:
-  input_dir             directory containing raw DATA-CUBE files (all files
-                        must originate from a single digitizer)
+  input_dir             one or more directories containing raw DATA-CUBE files
+                        (all files must originate from a single digitizer)
+                        [wildcards (*) supported]
   output_dir            directory for output miniSEED and GPS-related files
   network               desired SEED network code (2 characters, A-Z)
   station               desired SEED station code (3-4 characters, A-Z & 0-9)
@@ -88,6 +89,14 @@ optional arguments:
                         factor by which to divide sensitivity values (for
                         custom breakout boxes)
 ```
+For example, the command
+```
+$ python cube_convert.py ~/data/raw/*/ ~/data/mseed/ AV GAIA 01 AUTO --grab-gps --bob-factor 4.7
+```
+means "convert all files in the subdirectories of `~/data/raw/` and place in
+`~/data/mseed/` with network code **AV**, station code **GAIA**, location code
+**01**, and an automatically determined channel code, dividing the sensitivity
+by 4.7 and extracting coordinates from the digitizer's GPS."
 
 Authors
 -------
@@ -95,6 +104,7 @@ Authors
 (_Alphabetical order by last name._)
 
 David Fee  
+Julia Gestrich  
 Alex Iezzi  
 Kathleen McKee  
 Liam Toney
