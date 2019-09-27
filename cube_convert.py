@@ -22,10 +22,6 @@ DEFAULT_SENSITIVITY = 0.00902  # [V/Pa] Default sensor sensitivity
 DEFAULT_OFFSET = -0.01529      # [V] Default digitizer offset
 
 NUM_SATS = 9  # Minimum number of satellites required for keeping a GPS point
-
-# Reverse polarity list for 2016 Yasur deployment
-REVERSE_POLARITY_LIST = ['YIF1', 'YIF2', 'YIF3', 'YIF4', 'YIF5', 'YIF6',
-                         'YIFA', 'YIFB', 'YIFC', 'YIFD']
 # -----------------------------------------------------------------------------
 
 # Set up command-line interface
