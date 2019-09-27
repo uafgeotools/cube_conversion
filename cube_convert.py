@@ -22,6 +22,8 @@ DEFAULT_SENSITIVITY = 0.00902  # [V/Pa] Default sensor sensitivity
 DEFAULT_OFFSET = -0.01529      # [V] Default digitizer offset
 
 NUM_SATS = 9  # Minimum number of satellites required for keeping a GPS point
+
+MAX_PLOT_DIST = 50  # [m] Maximum (absolute value) axis limit for 2-D histogram
 # -----------------------------------------------------------------------------
 
 # Set up command-line interface
@@ -379,6 +381,16 @@ if input_args.grab_gps:
     # Plot all GPS points
     sc = ax.scatter(x, y, c=counts, cmap='rainbow', zorder=3, clip_on=False)
 
+    # Get current axis limits
+    xl, yl = ax.get_xlim(), ax.get_ylim()
+
+    # If abs(limit) exceeds MAX_PLOT_DIST, clip to +/- MAX_PLOT_DIST
+    ax.set_xlim(left=np.max([xl[0], -MAX_PLOT_DIST]))
+    ax.set_xlim(right=np.min([xl[1], MAX_PLOT_DIST]))
+    ax.set_ylim(bottom=np.max([yl[0], -MAX_PLOT_DIST]))
+    ax.set_ylim(top=np.min([yl[1], MAX_PLOT_DIST]))
+
+    # Add colorbar
     cbar = fig.colorbar(sc, label='Number of GPS points')
 
     # Plot most common coordinate
