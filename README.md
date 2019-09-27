@@ -1,16 +1,16 @@
 cube_conversion
 ===============
 
-This command-line tool converts DiGOS DATA-CUBE<sup>3</sup> files into miniSEED files
-of a desired length of time with specified metadata. Output miniSEED files are
-ready for IRIS upload and have units of Pa. The tool can differentiate between
-channels for 3 channel DATA-CUBE<sup>3</sup> files and optionally extract
-coordinates from the digitizer's GPS. The code only looks for files from
-digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore, this
-file must be updated if pairings change or new pairings are added. The user can
-specify a custom "breakout box factor" for setups that modify the signal voltage
-via a voltage divider. Currently only set up for conversion of infrasound data, 
-but future udpates will accomodate seismic as well.
+This command-line tool converts [DiGOS](https://digos.eu/) DATA-CUBE<sup>3</sup> 
+files into miniSEED files of a desired length of time with specified metadata. 
+Output miniSEED files are ready for IRIS upload and have units of Pa. The tool 
+an differentiate between channels for 3 channel DATA-CUBE<sup>3</sup> files and 
+optionally extract coordinates from the digitizer's GPS. The code only looks for 
+files from digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore, 
+this file must be updated if pairings change or new pairings are added. The user 
+can specify a custom "breakout box factor" for setups that modify the signal 
+voltage via a voltage divider. Currently only set up for conversion of infrasound 
+data, but future updates will accommodate seismic as well.
 
 Dependencies
 ------------
@@ -88,7 +88,7 @@ optional arguments:
   --grab-gps            additionally extract coordinates from digitizer GPS
   --bob-factor BREAKOUT_BOX_FACTOR
                         factor by which to divide sensitivity values (for
-                        custom breakout boxes: 4.5 for UAF CUBES)
+                        custom breakout boxes). 4.5 for UAF CUBES
 ```
 For example, the command
 ```
