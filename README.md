@@ -47,8 +47,8 @@ Supplemental files
 
 * `digitizer_sensor_pairs.json` — UAF digitizer-sensor pairs (**EDIT ME!**)
 
-* `digitizer_offsets.json` — Digitizer offsets in V. (We have found that each
-                             digitizer has a slight voltage offset from zero.)
+* `digitizer_offsets.json` — Digitizer offsets in V (We have found that each
+                             digitizer has a slight voltage offset from zero)
 
 * `sensor_sensitivities.json` — Infrasound sensor sensitivities in V/Pa
 
