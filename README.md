@@ -1,7 +1,7 @@
 cube_conversion
 ===============
 
-This command-line tool converts DATA-CUBE<sup>3</sup> files into miniSEED files
+This command-line tool converts DiGOS DATA-CUBE<sup>3</sup> files into miniSEED files
 of a desired length of time with specified metadata. Output miniSEED files are
 ready for IRIS upload and have units of Pa. The tool can differentiate between
 channels for 3 channel DATA-CUBE<sup>3</sup> files and optionally extract
@@ -9,7 +9,8 @@ coordinates from the digitizer's GPS. The code only looks for files from
 digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore, this
 file must be updated if pairings change or new pairings are added. The user can
 specify a custom "breakout box factor" for setups that modify the signal voltage
-via a voltage divider.
+via a voltage divider. Currently only set up for conversion of infrasound data, 
+but future udpates will accomodate seismic as well.
 
 Dependencies
 ------------
@@ -46,9 +47,9 @@ Supplemental files
 
 * `digitizer_sensor_pairs.json` — UAF digitizer-sensor pairs (**EDIT ME!**)
 
-* `digitizer_offsets.json` — Digitizer offsets in V
+* `digitizer_offsets.json` — Digitizer offsets in V. We have found each digitizer has a slight voltage offset from zero.
 
-* `sensor_sensitivities.json` — Sensor sensitivities in V/Pa
+* `sensor_sensitivities.json` — Infrasound sensor sensitivities in V/Pa
 
 Usage
 -----
@@ -87,16 +88,16 @@ optional arguments:
   --grab-gps            additionally extract coordinates from digitizer GPS
   --bob-factor BREAKOUT_BOX_FACTOR
                         factor by which to divide sensitivity values (for
-                        custom breakout boxes)
+                        custom breakout boxes: 4.5 for UAF CUBES)
 ```
 For example, the command
 ```
-$ python cube_convert.py ~/data/raw/*/ ~/data/mseed/ AV GAIA 01 AUTO --grab-gps --bob-factor 4.7
+$ python cube_convert.py ~/data/raw/*/ ~/data/mseed/ AV GAIA 01 AUTO --grab-gps --bob-factor 4.5
 ```
 means "convert all files in the subdirectories of `~/data/raw/` and place in
 `~/data/mseed/` with network code **AV**, station code **GAIA**, location code
 **01**, and an automatically determined channel code, dividing the sensitivity
-by 4.7 and extracting coordinates from the digitizer's GPS."
+by 4.5 and extracting coordinates from the digitizer's GPS."
 
 Authors
 -------
