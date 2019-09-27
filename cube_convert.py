@@ -61,7 +61,7 @@ parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
 parser.add_argument('--bob-factor', default=None, type=float,
                     dest='breakout_box_factor',
                     help='factor by which to divide sensitivity values (for '
-                         'custom breakout boxes)')
+                         'custom breakout boxes [4.5 for UAF DATA-CUBEs])')
 input_args = parser.parse_args()
 
 # Check if input directory/ies is/are valid
