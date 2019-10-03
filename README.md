@@ -12,23 +12,39 @@ can specify a custom "breakout box factor" for setups that modify the signal
 voltage via a voltage divider. This tool is currently only set up for conversion
 of infrasound data, but future updates will accommodate seismic as well.
 
-Dependencies
+Installation
 ------------
 
-* [Python](https://www.python.org/) >= 3.2
+It's recommended that you run this script within a new or pre-existing
+[conda](https://docs.conda.io/projects/conda/en/latest/index.html) environment.
+(If you choose the latter option, ensure that your environment contains all of
+the packages listed in the [Dependencies](#dependencies) section.)
+
+To create a new conda environment for use with this and other _uafgeotools_
+packages, execute the following terminal command:
+```
+$ conda env create -n uafinfra -c conda-forge obspy
+```
+This creates a new environment called `uafinfra` with ObsPy and its dependencies
+installed.
+
+You must also install GIPPtools and add it to your path as described in the
+[Dependencies](#dependencies) section.
+
+To install _cube_conversion_, simply execute the following terminal command:
+```
+$ git clone https://github.com/uafgeotools/cube_conversion.git
+```
+
+Dependencies
+------------
 
 Python packages:
 
 * [ObsPy](http://docs.obspy.org/)
 
 ...and its dependencies, which you don't really have to be concerned about if
-you're using [conda](https://docs.conda.io/projects/conda/en/latest/index.html)!
-
-It's recommended that you create a new conda environment to use with this
-repository:
-```
-conda create -n cube_conversion -c conda-forge obspy "python>=3.2"
-```
+you're using conda!
 
 You also need to install
 [GIPPtools](https://www.gfz-potsdam.de/en/section/geophysical-deep-sounding/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/)
@@ -55,13 +71,12 @@ Supplemental files
 Usage
 -----
 
-To use _cube_conversion_, clone or download this repository, and then run the
-following commands in a terminal window:
+To print the script's help menu, execute the following terminal commands:
 ```
-$ conda activate cube_conversion
+$ conda activate uafinfra  # Or your pre-existing env
 $ python /path/to/cube_convert.py --help
 ```
-You'll see the following help menu:
+The help menu is shown below.
 ```
 usage: cube_convert.py [-h] [-v] [--grab-gps]
                        [--bob-factor BREAKOUT_BOX_FACTOR]
