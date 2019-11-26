@@ -225,8 +225,6 @@ for file in cut_file_list:
     tr.data = tr.data * BITWEIGHT    # Convert from counts to V
     tr.data = tr.data + offset       # Remove voltage offset
     tr.data = tr.data / sensitivity  # Convert from V to Pa
-    if input_args.station in REVERSE_POLARITY_LIST:
-        tr.data = tr.data * -1
 
     if input_args.location == 'AUTO':
         if file.endswith('.pri0'):    # Channel 1
