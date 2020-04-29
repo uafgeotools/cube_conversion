@@ -81,7 +81,7 @@ The help menu is shown below.
 usage: cube_convert.py [-h] [-v] [--grab-gps]
                        [--bob-factor BREAKOUT_BOX_FACTOR]
                        input_dir [input_dir ...] output_dir network station
-                       {01,02,03,04,AUTO} {AUTO,BDF,HDF,DDF}
+                       {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
 
 Convert DATA-CUBE files to miniSEED files while trimming, adding metadata, and
 renaming. Optionally extract coordinates from digitizer GPS.
@@ -95,7 +95,7 @@ positional arguments:
   station               desired SEED station code (3-4 characters, A-Z & 0-9)
   {01,02,03,04,AUTO}    desired SEED location code (if AUTO, choose
                         automatically for 3 channel DATA-CUBE files)
-  {AUTO,BDF,HDF,DDF}    desired SEED channel code (if AUTO, determine
+  {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine
                         automatically using SEED convention [preferred])
 
 optional arguments:

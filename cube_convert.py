@@ -51,7 +51,7 @@ parser.add_argument('location',
 parser.add_argument('channel',
                     help='desired SEED channel code (if AUTO, determine '
                          'automatically using SEED convention [preferred])',
-                    choices=['AUTO', 'BDF', 'HDF', 'DDF'])
+                    choices=['AUTO', 'BDF', 'HDF', 'CDF'])
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='enable verbosity for GIPPtools commands')
 parser.add_argument('--grab-gps', action='store_true', dest='grab_gps',
@@ -214,7 +214,7 @@ for file in cut_file_list:
         elif 80 <= tr.stats.sampling_rate < 250:
             channel_id = 'HDF'
         elif 250 <= tr.stats.sampling_rate < 1000:
-            channel_id = 'DDF'
+            channel_id = 'CDF'
         else:
             raise ValueError('Sampling rate is < 10 or >= 1000 Hz!')
     else:
