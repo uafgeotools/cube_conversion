@@ -115,6 +115,23 @@ means "convert all files in the subdirectories of `~/data/raw/` and place in
 **01**, and an automatically determined channel code, dividing the sensitivity
 by 4.5 and extracting coordinates from the digitizer's GPS."
 
+A note on SEED band codes
+-------------------------
+
+Appendix A of the
+[SEED manual (version 2.4)](http://www.fdsn.org/pdf/SEEDManual_V2.4.pdf)
+specifies the following guidance for band codes. Band codes are the first
+letter of the channel code; e.g., the "B" in "BDF".
+
+![](SEEDManual_V2.4_band_codes.png)
+
+Note that the band code depends on both the sample rate of the digitizer and
+the corner period of the sensor. In `cube_convert.py` we allow for "B", "H", or
+"C", which covers a range of sample rates from 10 to 1000 Hz, all for corner
+periods of 10 s or greater. While this covers most infrasound sensors, please
+confirm that your sampling rate and sensor corner period fit into the above
+framework.
+
 Authors
 -------
 
