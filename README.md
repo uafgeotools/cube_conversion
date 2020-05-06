@@ -129,8 +129,8 @@ Note that the band code depends on both the sample rate of the digitizer and
 the corner period of the sensor. In `cube_convert.py` we allow for "B", "H", or
 "C", which covers a range of sample rates from 10 to 1000 Hz, all for corner
 periods of 10 s or greater. While this covers most infrasound sensors, please
-confirm that your sampling rate and sensor corner period fit into the above
-framework.
+confirm that your digitizer sample rate and sensor corner period fit into the
+above framework.
 
 Authors
 -------
