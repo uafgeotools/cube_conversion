@@ -124,7 +124,7 @@ specifies the following guidance for band codes. Band codes are the first
 letter of the channel code; e.g., the "B" in "BDF".
 
 | Band code | Band type              | Sample rate (Hz)    | Corner period (s) |
-| --------- | ---------------------- | ------------------- | ----------------- |
+| :-------- | :--------------------- | :------------------ | :---------------- |
 | F         |                        | ≥ 1000 to < 5000    | ≥ 10              |
 | G         |                        | ≥ 1000 to < 5000    | < 10              |
 | D         |                        | ≥ 250 to < 1000     | < 10              |
