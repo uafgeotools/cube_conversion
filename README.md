@@ -123,7 +123,21 @@ Appendix A of the
 specifies the following guidance for band codes. Band codes are the first
 letter of the channel code; e.g., the "B" in "BDF".
 
-![](SEEDManual_V2.4_band_codes.png)
+| Band code | Band type              | Sample rate (Hz)    | Corner period (s) |
+| --------- | ---------------------- | ------------------- | ----------------- |
+| F         |                        | ≥ 1000 to < 5000    | ≥ 10              |
+| G         |                        | ≥ 1000 to < 5000    | < 10              |
+| D         |                        | ≥ 250 to < 1000     | < 10              |
+| **C**     |                        | **≥ 250 to < 1000** | **≥ 10**          |
+| E         | Extremely short-period | ≥ 80 to < 250       | < 10              |
+| S         | Short-period           | ≥ 10 to < 80        | < 10              |
+| **H**     | **High broadband**     | **≥ 80 to < 250**   | **≥ 10**          |
+| **B**     | **Broadband**          | **≥ 10 to < 80**    | **≥ 10**          |
+| M         | Mid-period             | > 1 to < 10         |                   |
+| L         | Long-period            | ≈ 1                 |                   |
+| V         | Very long-period       | ≈ 0.1               |                   |
+| U         | Ultra long-period      | ≈ 0.01              |                   |
+| R         | Extremely long-period  | ≥ 0.0001 to < 0.001 |                   |
 
 Note that the band code depends on both the sample rate of the digitizer and
 the corner period of the sensor. In `cube_convert.py` we allow for "B", "H", or
