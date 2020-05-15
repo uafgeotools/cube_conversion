@@ -81,7 +81,7 @@ The help menu is shown below.
 usage: cube_convert.py [-h] [-v] [--grab-gps]
                        [--bob-factor BREAKOUT_BOX_FACTOR]
                        input_dir [input_dir ...] output_dir network station
-                       {01,02,03,04,AUTO} {AUTO,BDF,HDF,DDF}
+                       {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
 
 Convert DATA-CUBE files to miniSEED files while trimming, adding metadata, and
 renaming. Optionally extract coordinates from digitizer GPS.
@@ -95,7 +95,7 @@ positional arguments:
   station               desired SEED station code (3-4 characters, A-Z & 0-9)
   {01,02,03,04,AUTO}    desired SEED location code (if AUTO, choose
                         automatically for 3 channel DATA-CUBE files)
-  {AUTO,BDF,HDF,DDF}    desired SEED channel code (if AUTO, determine
+  {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine
                         automatically using SEED convention [preferred])
 
 optional arguments:
@@ -114,6 +114,37 @@ means "convert all files in the subdirectories of `~/data/raw/` and place in
 `~/data/mseed/` with network code **AV**, station code **GAIA**, location code
 **01**, and an automatically determined channel code, dividing the sensitivity
 by 4.5 and extracting coordinates from the digitizer's GPS."
+
+A note on SEED band codes
+-------------------------
+
+Appendix A of the
+[SEED manual (version 2.4)](http://www.fdsn.org/pdf/SEEDManual_V2.4.pdf)
+specifies the following guidance for band codes. Band codes are the first
+letter of the channel code; e.g., the "B" in "BDF".
+
+| Band code | Band type              | Sample rate (Hz)    | Corner period (s) |
+| :-------- | :--------------------- | :------------------ | :---------------- |
+| F         |                        | ≥ 1000 to < 5000    | ≥ 10              |
+| G         |                        | ≥ 1000 to < 5000    | < 10              |
+| D         |                        | ≥ 250 to < 1000     | < 10              |
+| **C**     |                        | **≥ 250 to < 1000** | **≥ 10**          |
+| E         | Extremely short-period | ≥ 80 to < 250       | < 10              |
+| S         | Short-period           | ≥ 10 to < 80        | < 10              |
+| **H**     | **High broadband**     | **≥ 80 to < 250**   | **≥ 10**          |
+| **B**     | **Broadband**          | **≥ 10 to < 80**    | **≥ 10**          |
+| M         | Mid-period             | > 1 to < 10         |                   |
+| L         | Long-period            | ≈ 1                 |                   |
+| V         | Very long-period       | ≈ 0.1               |                   |
+| U         | Ultra long-period      | ≈ 0.01              |                   |
+| R         | Extremely long-period  | ≥ 0.0001 to < 0.001 |                   |
+
+Note that the band code depends on both the sample rate of the digitizer and
+the corner period of the sensor. In `cube_convert.py` we allow for "B", "H", or
+"C", which covers a range of sample rates from 10 to 1000 Hz, all for corner
+periods of 10 s or greater. While this covers most infrasound sensors, please
+confirm that your digitizer sample rate and sensor corner period fit into the
+above framework.
 
 Authors
 -------
