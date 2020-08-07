@@ -124,9 +124,9 @@ for digitizer_code in digitizer_sensor_pairs.keys():
         raw_files += glob.glob(os.path.join(input_dir, '*.' + digitizer_code))
 raw_files.sort()  # Sort from earliest to latest in time
 extensions = np.unique([f.split('.')[-1] for f in raw_files])
-if extensions.size is 0:
+if extensions.size == 0:
     raise FileNotFoundError('No raw files found.')
-elif extensions.size is not 1:
+elif extensions.size != 1:
     raise ValueError(f'Files from multiple digitizers found: {extensions}')
 
 # Create temporary processing directory in the output directory
@@ -303,7 +303,7 @@ if input_args.grab_gps:
 
     # Threshold based on minimum number of satellites
     gps_data = gps_data[:, gps_data[3] >= NUM_SATS]
-    if gps_data.size is 0:
+    if gps_data.size == 0:
         # Remove tmp directory (only if it's empty, to be safe!)
         if not os.listdir(tmp_dir):
             os.removedirs(tmp_dir)
