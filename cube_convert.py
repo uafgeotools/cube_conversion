@@ -274,7 +274,7 @@ if input_args.grab_gps:
     # Define function to parse columns of input file
     def converter(string):
         return string.split('=')[-1]
-    converters = {5: converter, 6: converter, 7: converter, 10: converter}
+    converters = {6: converter, 7: converter, 8: converter, 11: converter}
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
