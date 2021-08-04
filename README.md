@@ -50,7 +50,7 @@ You also need to install
 [GIPPtools](https://www.gfz-potsdam.de/en/section/geophysical-deep-sounding/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/)
 and add it to your `PATH`.
 
-* Version 2015.225 or newer is required.
+* Version 2016.358 or newer is required.
 
 * Add GIPPtools to your `PATH` by adding the following line to your
   `~/.bash_profile` or `~/.bashrc`:
