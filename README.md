@@ -55,8 +55,10 @@ and add it to your `PATH`.
 * Add GIPPtools to your `PATH` by adding the following line to your
   `~/.bash_profile` or `~/.bashrc`:
   ```
-  export PATH=$PATH:/path/to/gipptools-****.***/bin
+  export PATH=$PATH:/path/to/gipptools-????.???/bin
   ```
+  Replace `????.???` with your version of GIPPtools — e.g. `2021.168` — and
+  ensure you've provided the right path.
 
 Supplemental files
 ------------------
