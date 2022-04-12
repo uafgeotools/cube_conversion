@@ -47,7 +47,7 @@ Python packages:
 you're using conda!
 
 You also need to install
-[GIPPtools](https://www.gfz-potsdam.de/en/section/geophysical-deep-sounding/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/)
+[GIPPtools](https://www.gfz-potsdam.de/en/section/geophysical-imaging/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/)
 and add it to your `PATH`.
 
 * Version 2016.358 or newer is required.
