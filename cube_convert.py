@@ -177,7 +177,7 @@ print('Running mseedcut on converted miniSEED files...')
 print('------------------------------------------------------------------')
 
 # Create second temporary folder to store mseedcut files and avoid error messages for overwriting
-tmp_dir2 = os.path.join(output_dir, 'tmp2')
+tmp_dir2 = os.path.join(input_args.output_dir, 'tmp2')
 if not os.path.exists(tmp_dir2):
     os.makedirs(tmp_dir2)
 
