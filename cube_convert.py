@@ -205,29 +205,36 @@ print('------------------------------------------------------------------')
 # metadata (automatically distinguish between a 3-element array or single
 # sensor)
 
-mdayhour = np.array([file[-15:-9] for file in cut_file_list])
-# Find indices for multiple files per day
+mdayhour = []
+for file in cut_file_list:
+    if file[-7:-6] == '.':
+        mdayhour = np.append(mdayhour, file[-17:-11])
+    else:
+        mdayhour = np.append(mdayhour,file[-15:-9])
+# Find indices for multiple files per hour
 inds = [np.where(mdayhour == mdayhour[i])[0] for i in range(len(mdayhour)) if np.all([len(np.where(mdayhour == mdayhour[i])[0])>1, i==np.where(mdayhour == mdayhour[i])[0][0]])]
-# (inds is a list of arrays; each array represents one day with multiples and indices in array are indices
+# (inds is a list of arrays; each array represents one hour with multiples and indices in array are indices
 # of the multiples in cut_file_list)
 
 t_min, t_max = np.inf, -np.inf  # Initialize time bounds
 nf = 0 # Running index of files in cut_file_list
-mn = 0  # Running index of days that have multiple files (aka data gaps)
+mn = 0  # Running index of hours that have multiple files (aka data gaps)
 while nf < len(cut_file_list):
     file = cut_file_list[nf]
     print(os.path.basename(file))
 
     if mn < len(inds):
-        if nf == inds[mn][0]: # Check if the index of current day matches a day that has multiple files
-            print('found multiple files for one day:')
+        if nf == inds[mn][0]: # Check if the index of current hour matches a hour that has multiple files
+            print('found multiple files for one hour:')
             st = obspy.read(file)
             for i in range(len(inds[mn]) - 1):
                 print(os.path.basename(cut_file_list[inds[mn][i + 1]]))
                 st += obspy.read(cut_file_list[inds[mn][i + 1]])
-                os.remove(cut_file_list[inds[mn][i + 1]]) # Remove all files for that day but the first one
+                os.remove(cut_file_list[inds[mn][i + 1]]) # Remove all files for that hour but the first one
+            while np.any([st[i].stats.sampling_rate != st[j].stats.sampling_rate for i in range(len(st)) for j in range(len(st))]): #check if all sampling rates are correct
+                st.remove(st[0]) #remove oldest trace (assuming that the sampling range was changed and the latest one is what we want)
             st.merge(fill_value=0) # Fill data gaps with zero value
-            nf = nf + len(inds[mn]) # Jump to the next day (skipping the multiple files)
+            nf = nf + len(inds[mn]) # Jump to the next hour (skipping the multiple files)
             mn = mn + 1
         else:
             st = obspy.read(file)
