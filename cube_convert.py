@@ -166,7 +166,7 @@ print('------------------------------------------------------------------')
 
 for raw_file in raw_files:
     print(os.path.basename(raw_file))
-    args = ['cube2mseed', '--resample=SINC', f'--output-dir={tmp_dir}',
+    args = ['cube2mseed', '--fringe-samples=NOMINAL', '--resample=SINC', f'--output-dir={tmp_dir}',
             '--encoding=FLOAT-64', raw_file]
     if input_args.verbose:
         args.append('--verbose')
@@ -176,10 +176,15 @@ print('------------------------------------------------------------------')
 print('Running mseedcut on converted miniSEED files...')
 print('------------------------------------------------------------------')
 
+# Create second temporary folder to store mseedcut files and avoid error messages for overwriting
+tmp_dir2 = os.path.join(input_args.output_dir, 'tmp2')
+if not os.path.exists(tmp_dir2):
+    os.makedirs(tmp_dir2)
+
 # Create list of all day-long files
 day_file_list = glob.glob(os.path.join(tmp_dir, '*'))
 
-args = ['mseedcut', f'--output-dir={tmp_dir}', f'--file-length={TRACE_DUR}',
+args = ['mseedcut', f'--output-dir={tmp_dir2}', f'--file-length={TRACE_DUR}',
         tmp_dir]
 if input_args.verbose:
     args.append('--verbose')
@@ -188,9 +193,8 @@ subprocess.call(args)
 # Remove the day-long files from the temporary directory
 for file in day_file_list:
     os.remove(file)
-
 # Create list of all resulting cut files
-cut_file_list = glob.glob(os.path.join(tmp_dir, '*'))
+cut_file_list = glob.glob(os.path.join(tmp_dir2, '*'))
 cut_file_list.sort()  # Sort from earliest to latest in time
 
 print('------------------------------------------------------------------')
@@ -200,10 +204,47 @@ print('------------------------------------------------------------------')
 # Loop through each cut file and assign the channel number, editing the simple
 # metadata (automatically distinguish between a 3-element array or single
 # sensor)
-t_min, t_max = np.inf, -np.inf  # Initialize time bounds
+
+mdayhour = []
 for file in cut_file_list:
+    if file[-7:-6] == '.': #In case that there are multiple files for one minute the mseedcut command above inserts a ".1"
+        mdayhour = np.append(mdayhour, file[-17:-11])
+    else:
+        mdayhour = np.append(mdayhour,file[-15:-9])
+# Find indices for multiple files per hour
+inds = [np.where(mdayhour == mdayhour[i])[0] for i in range(len(mdayhour)) if np.all([len(np.where(mdayhour == mdayhour[i])[0])>1, i==np.where(mdayhour == mdayhour[i])[0][0]])]
+# (inds is a list of arrays; each array represents one hour with multiples and indices in array are indices
+# of the multiples in cut_file_list)
+
+t_min, t_max = np.inf, -np.inf  # Initialize time bounds
+nf = 0 # Running index of files in cut_file_list
+mn = 0  # Running index of hours that have multiple files (aka data gaps)
+while nf < len(cut_file_list):
+    file = cut_file_list[nf]
     print(os.path.basename(file))
-    st = obspy.read(file)
+
+    if mn < len(inds):
+        if nf == inds[mn][0]: # Check if the index of current hour matches a hour that has multiple files
+            print('Found multiple files for one hour:')
+            st = obspy.read(file)
+            for i in range(len(inds[mn]) - 1):
+                print(os.path.basename(cut_file_list[inds[mn][i + 1]]))
+                st += obspy.read(cut_file_list[inds[mn][i + 1]])
+                os.remove(cut_file_list[inds[mn][i + 1]]) # Remove all files for that hour but the first one
+            while np.any([st[i].stats.sampling_rate != st[j].stats.sampling_rate for i in range(len(st)) for j in range(len(st))]): #check if all sampling rates are correct
+                print('Different sampling rates detected for one hour. Removing oldest trace.')
+                st.remove(st[0]) #remove oldest trace (assuming that the sampling range was changed and the latest one is what we want)
+            print('Merging multiple traces for one hour using fill_value=0')
+            st.merge(fill_value=0) # Fill data gaps with zero value
+            nf = nf + len(inds[mn]) # Jump to the next hour (skipping the multiple files)
+            mn = mn + 1
+        else:
+            st = obspy.read(file)
+            nf = nf + 1
+    else:
+        st = obspy.read(file)
+        nf = nf + 1
+
     tr = st[0]
     tr.stats.network = input_args.network
     tr.stats.station = input_args.station
@@ -424,6 +465,8 @@ if input_args.grab_gps:
 # Remove tmp directory (only if it's empty, to be safe!)
 if not os.listdir(tmp_dir):
     os.removedirs(tmp_dir)
+if not os.listdir(tmp_dir2):
+    os.removedirs(tmp_dir2)
 
 print('------------------------------------------------------------------')
 print('...finished conversion process.')
