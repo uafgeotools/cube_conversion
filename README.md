@@ -3,7 +3,8 @@ cube_conversion
 
 This command-line tool converts [DiGOS](https://digos.eu/) DATA-CUBE<sup>3</sup>
 files into miniSEED files of a desired length of time with specified metadata.
-Output miniSEED files are ready for IRIS upload and have units of Pa. The tool
+Output miniSEED files have units of Pa, unless the user selects to export the files in
+a form suitable for submission to EarthScope. The tool
 can differentiate between channels for 3 channel DATA-CUBE<sup>3</sup> files and
 optionally extract coordinates from the digitizer's GPS. The code only looks for
 files from digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore,
