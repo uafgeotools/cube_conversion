@@ -82,7 +82,7 @@ $ python /path/to/cube_convert.py --help
 The help menu is shown below.
 ```
 usage: cube_convert.py [-h] [-v] [--grab-gps]
-                       [--bob-factor BREAKOUT_BOX_FACTOR]
+                       [--bob-factor BREAKOUT_BOX_FACTOR] [--earthscope]
                        input_dir [input_dir ...] output_dir network station
                        {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
 
@@ -101,13 +101,14 @@ positional arguments:
   {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine
                         automatically using SEED convention [preferred])
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -v, --verbose         enable verbosity for GIPPtools commands
   --grab-gps            additionally extract coordinates from digitizer GPS
   --bob-factor BREAKOUT_BOX_FACTOR
                         factor by which to divide sensitivity values (for
                         custom breakout boxes [4.5 for UAF DATA-CUBEs])
+  --earthscope          format miniSEED files for EarthScope data upload
 ```
 For example, the command
 ```
