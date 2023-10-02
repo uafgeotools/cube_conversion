@@ -61,7 +61,7 @@ parser.add_argument('--bob-factor', default=None, type=float,
                     help='factor by which to divide sensitivity values (for '
                          'custom breakout boxes [4.5 for UAF DATA-CUBEs])')
 parser.add_argument('--earthscope', action='store_true', dest='earthscope',
-                    help='format miniSEED files for EarthScope data upload')
+                    help='format miniSEED files for EarthScope (formerly IRIS) data upload')
 input_args = parser.parse_args()
 
 # Check if input directory/ies is/are valid
