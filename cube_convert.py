@@ -148,7 +148,12 @@ print(f'    Digitizer: {digitizer} (offset = {offset} V)')
 
 # Get sensor info and sensitivity (EarthScope submission requires raw counts, so we skip
 # this step if the user specified `--earthscope`)
-if not input_args.earthscope:
+if input_args.earthscope:
+    # Remind user that breakout box correction factor is not applied to raw data if
+    # uploading data to EarthScope
+    if input_args.breakout_box_factor is not None:
+        warnings.warn('Breakout box correction factor ignored for EarthScope submission!')
+else:
     sensor = digitizer_sensor_pairs[digitizer]
     try:
         sensitivity = sensitivities[sensor]
@@ -270,13 +275,10 @@ while nf < len(cut_file_list):
     tr.stats.channel = channel_id
 
     # Confidence check before we (possibly) modify the data type
-    integer_dtype = np.int32
-    assert tr.data.dtype == integer_dtype
+    assert tr.data.dtype == np.int32
 
     # KEY: Modifying the time series of integer counts here!
     if input_args.earthscope:  # Keep in integer counts!
-        if input_args.breakout_box_factor:  # Still need to account for BoB factor
-            tr.data = (tr.data * input_args.breakout_box_factor).astype(integer_dtype)
         output_encoding = 'INT32'
     else:  # Convert all the way to Pa (float values)
         tr.data = tr.data * BITWEIGHT    # Convert from counts to V
