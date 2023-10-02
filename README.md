@@ -108,7 +108,7 @@ options:
   --bob-factor BREAKOUT_BOX_FACTOR
                         factor by which to divide sensitivity values (for
                         custom breakout boxes [4.5 for UAF DATA-CUBEs])
-  --earthscope          format miniSEED files for EarthScope data upload
+  --earthscope          format miniSEED files for EarthScope (formerly IRIS) data upload
 ```
 For example, the command
 ```
