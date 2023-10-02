@@ -60,6 +60,8 @@ parser.add_argument('--bob-factor', default=None, type=float,
                     dest='breakout_box_factor',
                     help='factor by which to divide sensitivity values (for '
                          'custom breakout boxes [4.5 for UAF DATA-CUBEs])')
+parser.add_argument('--earthscope', action='store_true', dest='earthscope',
+                    help='format miniSEED files for EarthScope (formerly IRIS) data upload')
 input_args = parser.parse_args()
 
 # Check if input directory/ies is/are valid
@@ -144,21 +146,28 @@ except KeyError:
     offset = DEFAULT_OFFSET
 print(f'    Digitizer: {digitizer} (offset = {offset} V)')
 
-# Get sensor info and sensitivity
-sensor = digitizer_sensor_pairs[digitizer]
-try:
-    sensitivity = sensitivities[sensor]
-except KeyError:
-    warnings.warn('No matching sensitivities. Using default of '
-                  f'{DEFAULT_SENSITIVITY} V/Pa.')
-    sensitivity = DEFAULT_SENSITIVITY
-print(f'       Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
+# Get sensor info and sensitivity (EarthScope submission requires raw counts, so we skip
+# this step if the user specified `--earthscope`)
+if input_args.earthscope:
+    # Remind user that breakout box correction factor is not applied to raw data if
+    # uploading data to EarthScope
+    if input_args.breakout_box_factor is not None:
+        warnings.warn('Breakout box correction factor ignored for EarthScope submission!')
+else:
+    sensor = digitizer_sensor_pairs[digitizer]
+    try:
+        sensitivity = sensitivities[sensor]
+    except KeyError:
+        warnings.warn('No matching sensitivities. Using default of '
+                      f'{DEFAULT_SENSITIVITY} V/Pa.')
+        sensitivity = DEFAULT_SENSITIVITY
+    print(f'       Sensor: {sensor} (sensitivity = {sensitivity} V/Pa)')
 
-# Apply breakout box correction factor if provided
-if input_args.breakout_box_factor:
-    sensitivity = sensitivity / input_args.breakout_box_factor
-    print('       Dividing sensitivity by breakout box factor of '
-          f'{input_args.breakout_box_factor}')
+    # Apply breakout box correction factor if provided
+    if input_args.breakout_box_factor:
+        sensitivity = sensitivity / input_args.breakout_box_factor
+        print('       Dividing sensitivity by breakout box factor of '
+              f'{input_args.breakout_box_factor}')
 
 print('------------------------------------------------------------------')
 print(f'Running cube2mseed on {len(raw_files)} raw file(s)...')
@@ -166,8 +175,10 @@ print('------------------------------------------------------------------')
 
 for raw_file in raw_files:
     print(os.path.basename(raw_file))
+    # Default encoding is STEIM-1 (compressed integers) but we use uncompressed here
+    # since there is a direct NumPy data type equivalent (np.int32)
     args = ['cube2mseed', '--fringe-samples=NOMINAL', '--resample=SINC', f'--output-dir={tmp_dir}',
-            '--encoding=FLOAT-64', raw_file]
+            '--encoding=INT-32', raw_file]
     if input_args.verbose:
         args.append('--verbose')
     subprocess.call(args)
@@ -263,9 +274,18 @@ while nf < len(cut_file_list):
 
     tr.stats.channel = channel_id
 
-    tr.data = tr.data * BITWEIGHT    # Convert from counts to V
-    tr.data = tr.data + offset       # Remove voltage offset
-    tr.data = tr.data / sensitivity  # Convert from V to Pa
+    # Confidence check before we (possibly) modify the data type
+    assert tr.data.dtype == np.int32
+
+    # KEY: Modifying the time series of integer counts here!
+    if input_args.earthscope:  # Keep in integer counts!
+        output_encoding = 'INT32'
+    else:  # Convert all the way to Pa (float values)
+        tr.data = tr.data * BITWEIGHT    # Convert from counts to V
+        tr.data = tr.data + offset       # Remove voltage offset
+        tr.data = tr.data / sensitivity  # Convert from V to Pa
+        assert tr.data.dtype == np.float64
+        output_encoding = 'FLOAT64'
 
     if input_args.location == 'AUTO':
         if file.endswith('.pri0'):    # Channel 1
@@ -288,7 +308,7 @@ while nf < len(cut_file_list):
     t_min = np.min([t_min, tr.stats.starttime])
     t_max = np.max([t_max, tr.stats.endtime])
 
-    st.write(file, format='MSEED')
+    st.write(file, format='MSEED', encoding=output_encoding)
 
     # Define template for miniSEED renaming
     name_template = (f'{input_args.network}.{input_args.station}'

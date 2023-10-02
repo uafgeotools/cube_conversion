@@ -3,7 +3,8 @@ cube_conversion
 
 This command-line tool converts [DiGOS](https://digos.eu/) DATA-CUBE<sup>3</sup>
 files into miniSEED files of a desired length of time with specified metadata.
-Output miniSEED files are ready for IRIS upload and have units of Pa. The tool
+Output miniSEED files have units of Pa, unless the user selects to export the files in
+a form suitable for submission to EarthScope (formerly IRIS). The tool
 can differentiate between channels for 3 channel DATA-CUBE<sup>3</sup> files and
 optionally extract coordinates from the digitizer's GPS. The code only looks for
 files from digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore,
@@ -81,7 +82,7 @@ $ python /path/to/cube_convert.py --help
 The help menu is shown below.
 ```
 usage: cube_convert.py [-h] [-v] [--grab-gps]
-                       [--bob-factor BREAKOUT_BOX_FACTOR]
+                       [--bob-factor BREAKOUT_BOX_FACTOR] [--earthscope]
                        input_dir [input_dir ...] output_dir network station
                        {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
 
@@ -100,13 +101,14 @@ positional arguments:
   {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine
                         automatically using SEED convention [preferred])
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -v, --verbose         enable verbosity for GIPPtools commands
   --grab-gps            additionally extract coordinates from digitizer GPS
   --bob-factor BREAKOUT_BOX_FACTOR
                         factor by which to divide sensitivity values (for
                         custom breakout boxes [4.5 for UAF DATA-CUBEs])
+  --earthscope          format miniSEED files for EarthScope (formerly IRIS) data upload
 ```
 For example, the command
 ```
