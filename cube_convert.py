@@ -77,7 +77,7 @@ if not os.path.exists(input_args.output_dir):
 
 # Check network code format
 input_args.network = input_args.network.upper()
-if not re.fullmatch('[A-Z]{2}', input_args.network):
+if not re.fullmatch('[A-Z0-9]{2}', input_args.network):
     raise ValueError(f'Network code \'{input_args.network}\' is not valid.')
 
 # Check station code format
