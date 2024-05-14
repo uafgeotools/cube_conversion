@@ -42,7 +42,7 @@ parser.add_argument('output_dir',
 parser.add_argument('network',
                     help='desired SEED network code (2 characters, A-Z)')
 parser.add_argument('station',
-                    help='desired SEED station code (3-4 characters, A-Z & '
+                    help='desired SEED station code (3-5 characters, A-Z & '
                          '0-9)')
 parser.add_argument('location',
                     help='desired SEED location code (if AUTO, choose '
@@ -82,7 +82,7 @@ if not re.fullmatch('[A-Z0-9]{2}', input_args.network):
 
 # Check station code format
 input_args.station = input_args.station.upper()
-if not re.fullmatch('[A-Z0-9]{3,4}', input_args.station):
+if not re.fullmatch('[A-Z0-9]{3,5}', input_args.station):
     raise ValueError(f'Station code \'{input_args.station}\' is not valid.')
 
 # Find directory containing this script
