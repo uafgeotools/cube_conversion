@@ -54,7 +54,7 @@ and add it to your `PATH`.
 * Version 2016.358 or newer is required.
 
 * Add GIPPtools to your `PATH` by adding the following line to your
-  `~/.bash_profile` or `~/.bashrc`:
+  `~/.zshrc`, `~/.bash_profile`, or `~/.bashrc`:
   ```
   export PATH=$PATH:/path/to/gipptools-????.???/bin
   ```
