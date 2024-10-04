@@ -51,7 +51,7 @@ You also need to install
 [GIPPtools](https://www.gfz-potsdam.de/en/section/geophysical-imaging/infrastructure/geophysical-instrument-pool-potsdam-gipp/software/gipptools/)
 and add it to your `PATH`.
 
-* Version 2016.358 or newer is required.
+* Version 2024.170 or newer is required.
 
 * Add GIPPtools to your `PATH` by adding the following line to your
   `~/.zshrc` (for Z shell), `~/.bash_profile`, or `~/.bashrc` (for Bash) :
