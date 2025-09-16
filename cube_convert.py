@@ -339,8 +339,9 @@ if input_args.grab_gps:
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
+        print(raw_file)
         gps_file = os.path.join(tmp_dir,
-                                os.path.basename(raw_file)) + '.gps.txt'
+                                os.path.basename(raw_file)) + '.taip.txt'
         print(os.path.basename(gps_file))
         args = ['cubeinfo', '--format=GPS', f'--output-dir={tmp_dir}',
                 raw_file]
