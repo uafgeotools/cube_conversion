@@ -329,30 +329,31 @@ if input_args.grab_gps:
     print(f'Extracting/reducing GPS data for {len(raw_files)} raw file(s)...')
     print('------------------------------------------------------------------')
 
+    os.makedirs(tmp_dir, exist_ok=True)
+
     # Create four-row container for data
     gps_data = np.empty((4, 0))
-
-    # Define function to parse columns of input file
-    def converter(string):
-        return string.split('=')[-1]
-    converters = {6: converter, 7: converter, 8: converter, 11: converter}
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
         print(raw_file)
         gps_file = os.path.join(tmp_dir,
-                                os.path.basename(raw_file)) + '.taip.txt'
+                                os.path.basename(raw_file)) + '.gnss.txt'
         print(os.path.basename(gps_file))
-        args = ['cubeinfo', '--format=GPS', f'--output-dir={tmp_dir}',
-                raw_file]
-        if input_args.verbose:
-            args.append('--verbose')
-        subprocess.call(args)
 
-        # Read file and parse according to function above
-        data = np.loadtxt(gps_file, comments=None, encoding='utf-8',
-                          usecols=converters.keys(), converters=converters,
-                          unpack=True)
+        args = ['cubeaux', raw_file, '--channel=GNSS']
+        if getattr(input_args, 'verbose', False):
+            args.append('--verbose')
+
+        # Capture cubeaux output and save to gps_file
+        proc = subprocess.run(args, capture_output=True, text=True, check=True)
+        with open(gps_file, 'w', encoding='utf-8') as f:
+            f.write(proc.stdout)
+
+        # load lat/lon/elev/sats from cubeaux output
+        # Example line:
+        # 2025-08-14 00:00:13  c0AF2  +64.950840 -147.612990  269.0   8  3D-GPS
+        data = np.loadtxt(gps_file, usecols=(3, 4, 5, 6), ndmin=2).T
 
         # Append the above data to existing array
         gps_data = np.hstack([gps_data, data])
