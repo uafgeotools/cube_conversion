@@ -329,20 +329,17 @@ if input_args.grab_gps:
     print(f'Extracting/reducing GPS data for {len(raw_files)} raw file(s)...')
     print('------------------------------------------------------------------')
 
-    os.makedirs(tmp_dir, exist_ok=True)
-
     # Create four-row container for data
     gps_data = np.empty((4, 0))
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
-        print(raw_file)
         gps_file = os.path.join(tmp_dir,
                                 os.path.basename(raw_file)) + '.gnss.txt'
         print(os.path.basename(gps_file))
 
         args = ['cubeaux', raw_file, '--channel=GNSS']
-        if getattr(input_args, 'verbose', False):
+        if input_args.verbose:
             args.append('--verbose')
 
         # Capture cubeaux output and save to gps_file
