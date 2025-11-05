@@ -334,29 +334,21 @@ if input_args.grab_gps:
 
     # Loop over all raw files in input directory
     for raw_file in raw_files:
-        gps_file = os.path.join(tmp_dir,
-                                os.path.basename(raw_file)) + '.gnss.txt'
-        print(os.path.basename(gps_file))
-
         args = ['cubeaux', raw_file, '--channel=GNSS']
         if input_args.verbose:
             args.append('--verbose')
 
         # Capture cubeaux output and save to gps_file
         proc = subprocess.run(args, capture_output=True, text=True, check=True)
-        with open(gps_file, 'w', encoding='utf-8') as f:
-            f.write(proc.stdout)
 
-        # load lat/lon/elev/sats from cubeaux output
+        # use lat/lon/elev/sats from cubeaux output
         # Example line:
         # 2025-08-14 00:00:13  c0AF2  +64.950840 -147.612990  269.0   8  3D-GPS
-        data = np.loadtxt(gps_file, usecols=(3, 4, 5, 6), ndmin=2).T
+        lines = proc.stdout.strip().split('\n')
+        data = np.loadtxt(lines, usecols=(3, 4, 5, 6), ndmin=2).T
 
         # Append the above data to existing array
         gps_data = np.hstack([gps_data, data])
-
-        # Remove the file after reading
-        os.remove(gps_file)
 
     # Remove lat/lon zeros from GPS errors
     gps_data = gps_data[:, (gps_data[0:2] != 0).all(axis=0)]
