@@ -1,2 +1,5 @@
 # Ignore PyCharm project settings folder
 .idea/
+
+# Ignore macOS Finder metadata files
+.DS_Store
