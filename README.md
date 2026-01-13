@@ -24,7 +24,7 @@ the packages listed in the [Dependencies](#dependencies) section.)
 To create a new conda environment for use with this and other _uafgeotools_
 packages, execute the following terminal command:
 ```
-$ conda create -n uafinfra -c conda-forge obspy
+conda create -n uafinfra -c conda-forge obspy
 ```
 This creates a new environment called `uafinfra` with ObsPy and its dependencies
 installed.
@@ -32,9 +32,12 @@ installed.
 You must also install GIPPtools and add it to your path as described in the
 [Dependencies](#dependencies) section.
 
-To install _cube_conversion_, simply execute the following terminal command:
+To install _cube_conversion_, simply execute the following terminal commands with your
+target conda environment activated:
 ```
-$ git clone https://github.com/uafgeotools/cube_conversion.git
+git clone https://github.com/uafgeotools/cube_conversion.git
+cd cube_conversion
+pip install -e .
 ```
 
 Dependencies
@@ -76,15 +79,15 @@ Usage
 
 To print the script's help menu, execute the following terminal commands:
 ```
-$ conda activate uafinfra  # Or your pre-existing env
-$ python /path/to/cube_convert.py --help
+conda activate uafinfra  # Or your pre-existing env
+cube_convert --help  # Or: python /path/to/cube_conversion/cube_convert.py --help
 ```
 The help menu is shown below.
 ```
-usage: cube_convert.py [-h] [-v] [--grab-gps]
-                       [--bob-factor BREAKOUT_BOX_FACTOR] [--earthscope]
-                       input_dir [input_dir ...] output_dir network station
-                       {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
+usage: cube_convert [-h] [-v] [--grab-gps]
+                    [--bob-factor BREAKOUT_BOX_FACTOR] [--earthscope]
+                    input_dir [input_dir ...] output_dir network station
+                    {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
 
 Convert DATA-CUBE files to miniSEED files while trimming, adding metadata, and
 renaming. Optionally extract coordinates from digitizer GPS.
@@ -95,7 +98,7 @@ positional arguments:
                         [wildcards (*) supported]
   output_dir            directory for output miniSEED and GPS-related files
   network               desired SEED network code (2 characters, A-Z)
-  station               desired SEED station code (3-4 characters, A-Z & 0-9)
+  station               desired SEED station code (3-5 characters, A-Z & 0-9)
   {01,02,03,04,AUTO}    desired SEED location code (if AUTO, choose
                         automatically for 3 channel DATA-CUBE files)
   {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine
@@ -112,7 +115,7 @@ options:
 ```
 For example, the command
 ```
-$ python cube_convert.py ~/data/raw/*/ ~/data/mseed/ AV GAIA 01 AUTO --grab-gps --bob-factor 4.5
+cube_convert ~/data/raw/*/ ~/data/mseed/ AV GAIA 01 AUTO --grab-gps --bob-factor 4.5
 ```
 means "convert all files in the subdirectories of `~/data/raw/` and place in
 `~/data/mseed/` with network code **AV**, station code **GAIA**, location code
