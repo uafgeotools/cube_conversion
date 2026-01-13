@@ -6,8 +6,5 @@ dynamic = ["version"]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages]
-find = {}
-
 [project.scripts]
 cube_convert = "cube_conversion.cube_convert:main"
