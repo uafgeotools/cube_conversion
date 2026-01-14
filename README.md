@@ -4,7 +4,8 @@ cube_conversion
 This command-line tool converts [DiGOS](https://digos.eu/) DATA-CUBE<sup>3</sup>
 files into miniSEED files of a desired length of time with specified metadata.
 Output miniSEED files have units of Pa, unless the user selects to export the files in
-a form suitable for submission to EarthScope (formerly IRIS). The tool
+a form suitable for submission to EarthScope (formerly IRIS). A script to produce
+StationXML files is also provided, which is useful for EarthScope uploads. The tool
 can differentiate between channels for 3 channel DATA-CUBE<sup>3</sup> files and
 optionally extract coordinates from the digitizer's GPS. The code only looks for
 files from digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore,
@@ -72,12 +73,13 @@ Supplemental files
 * `digitizer_offsets.json` — Digitizer offsets in V (We have found that each
                              digitizer has a slight voltage offset from zero)
 
-* `sensor_sensitivities.json` — Infrasound sensor sensitivities in V/Pa
+* `sensor_sensitivities.json` — Infrasound sensor model, sensitivity in V/Pa,
+  and frequency of sensitivity measurement in Hz
 
 Usage
 -----
 
-To print the script's help menu, execute the following terminal commands:
+To print the conversion script's help menu, execute the following terminal commands:
 ```
 conda activate uafinfra  # Or your pre-existing env
 cube_convert --help  # Or: python /path/to/cube_conversion/cube_convert.py --help
