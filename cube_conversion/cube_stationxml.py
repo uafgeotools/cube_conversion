@@ -24,12 +24,11 @@ def main():
     )
     input_args = parser.parse_args()
 
-    # Check if input directory/ies is/are valid
-    for input_dir in input_args.input_dir:
-        if not os.path.exists(input_dir):
-            raise NotADirectoryError(
-                f'Input directory \'{input_dir}\' doesn\'t ' 'exist.'
-            )
+    # Check if input directory is valid
+    if not os.path.exists(input_args.input_dir):
+        raise NotADirectoryError(
+            f'Input directory \'{input_args.input_dir}\' doesn\'t ' 'exist.'
+        )
 
 
 # Run the main function if this is called as a script
