@@ -91,7 +91,7 @@ def main():
         raise ValueError(f'Station code \'{input_args.station}\' is not valid.')
 
     # Find directory containing this script
-    script_dir = os.path.dirname(__file__)
+    script_dir = os.path.dirname(os.path.dirname(__file__))
 
     # Load digitizer-sensor pairings file
     with open(os.path.join(script_dir, 'digitizer_sensor_pairs.json')) as f:
