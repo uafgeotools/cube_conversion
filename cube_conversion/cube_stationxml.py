@@ -21,6 +21,7 @@ This will fetch and install the newest copy from GitHub.
 
 import argparse
 import json
+import warnings
 from pathlib import Path
 
 from obspy import Stream, read
@@ -34,6 +35,7 @@ from obspy.core.inventory import (
     Site,
     Station,
 )
+from obspy.core.util.deprecation_helpers import ObsPyDeprecationWarning
 
 # --------------------------------------------------------------------------------------
 # Advanced configuration options
@@ -51,6 +53,15 @@ BOB_FACTOR = 10  # Breakout box factor for DATA-CUBE³s (this should usually be 
 _SENSOR_MANUFACTURER = 'Chaparral', 'Chaparral Physics'
 _DATALOGGER_MANUFACTURER = 'DiGOSOmnirecs', 'DiGOS/Omnirecs'
 _DATALOGGER_MODEL = 'DataCube', 'DATACUBE'
+
+# Ignore warning about Pa units
+warnings.filterwarnings(
+    'ignore',
+    category=UserWarning,
+    message="ObsPy can not map unit 'PA' to displacement, velocity, or acceleration",
+)
+# Ignore deprecation warning about accessing the NRL
+warnings.filterwarnings('ignore', category=ObsPyDeprecationWarning)
 
 
 # Define callable main function to work with [project.scripts]
@@ -298,4 +309,5 @@ def main():
 
 # Run the main function if this is called as a script
 if __name__ == '__main__':
+    main()
     main()
