@@ -21,8 +21,10 @@ This will fetch and install the newest copy from GitHub.
 
 import argparse
 import json
+import subprocess
 import warnings
 from pathlib import Path
+from urllib.request import urlretrieve
 
 from obspy import Stream, read
 from obspy.clients.nrl import NRL
@@ -88,6 +90,11 @@ def main():
         '--nrl-path',
         default=None,
         help='path to local copy of the NRL (if not provided, uses online NRL)',
+    )
+    parser.add_argument(
+        '--validate',
+        action='store_true',
+        help='run the IRIS StationXML validator on the output file',
     )
     input_args = parser.parse_args()
 
@@ -316,8 +323,45 @@ def main():
     inv.write(output_filename, format='stationxml', validate=True)
     print(f'\nWrote StationXML file to {output_filename}\n')
 
+    # Download and run the StationXML validator, if user wants to
+    if input_args.validate:
+        # Functions for colored printing... helpful for highlighting errors in validator
+        # output!
+        # fmt: off
+        def print_red(string):
+            print('\u001b[31m' + string + '\u001b[0m')
+        def print_yellow(string):
+            print('\u001b[33m' + string + '\u001b[0m')
+        # fmt: on
+        # JAR file will downloaded here if it doesn't already exist
+        jar_file_path = root_dir / 'stationxml-validator-1.7.5.jar'  # Selects version!
+        if jar_file_path.is_file():
+            print(f'Found {jar_file_path.name}. Running command:')
+        else:
+            print(f'Downloading {jar_file_path.name}...')
+            url_base = 'https://github.com/iris-edu/stationxml-validator/releases/'
+            urlretrieve(
+                url_base + f'download/{jar_file_path.stem}/{jar_file_path.name}',
+                jar_file_path,
+            )
+            print('...done. Running command:')
+        args = ['java', '-jar', jar_file_path, output_filename]
+        print('\n' + ' '.join([str(arg) for arg in args]) + '\n')
+        process = subprocess.run(args, capture_output=True, text=True)
+        if process.stderr:  # Something went wrong!
+            print_red(process.stderr.strip())
+        elif process.stdout:  # Normal operation
+            for line in process.stdout.strip().split('\n'):
+                if ',Error,' in line:
+                    print_red(line)
+                elif ',Warning,' in line:
+                    print_yellow(line)
+                else:
+                    print(line)
+        else:  # This will never happen?
+            raise OSError
+
 
 # Run the main function if this is called as a script
 if __name__ == '__main__':
-    main()
     main()
