@@ -247,12 +247,14 @@ def main():
         # KEY: Update with our specific measured sensor sensitivity
         nominal_sensitivity = response.response_stages[0].stage_gain
         measured_sensitivity = sensor_info[serial_number]['sensitivity']
-        at_frequency = sensor_info[serial_number]['frequency']
+        nominal_frequency = response.response_stages[0].stage_gain_frequency
+        measured_frequency = sensor_info[serial_number]['frequency']
         response.response_stages[0].stage_gain = measured_sensitivity
-        response.response_stages[0].stage_gain_frequency = at_frequency
+        response.response_stages[0].stage_gain_frequency = measured_frequency
         print(f'{station}: {nominal_sensitivity} --> {measured_sensitivity} V/Pa')
+        print(f'{station}: {nominal_frequency:.2f} --> {measured_frequency:.2f} Hz')
         # KEY: Recalculate overall sensitivity (at the calibration frequency)
-        response.recalculate_overall_sensitivity(frequency=at_frequency)
+        response.recalculate_overall_sensitivity(frequency=measured_frequency)
 
         cha.response = response
         sta.channels.append(cha)
