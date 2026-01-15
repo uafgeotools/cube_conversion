@@ -66,7 +66,7 @@ def main():
         help='directory containing miniSEED files and coordinate files produced by cube_convert',
     )
     parser.add_argument(
-        'station_mappings',
+        'station_mapping',
         nargs='+',
         help='one or more mappings of the form STATION_CODE:CUBE_NAME:SENSOR_SERIAL, for example UAF1:AVJ:903V2',
     )
@@ -76,7 +76,7 @@ def main():
     parser.add_argument(
         '--nrl-path',
         default=None,
-        help='path to local copy of the NRL (if not provided, use online NRL)',
+        help='path to local copy of the NRL (if not provided, uses online NRL)',
     )
     input_args = parser.parse_args()
 
@@ -87,7 +87,7 @@ def main():
 
     # Parse mappings into dictionary with keys being the station codes (TODO: validate!)
     station_mappings = {}
-    for mapping in input_args.station_mappings:
+    for mapping in input_args.station_mapping:
         station_code, cube_name, sensor_serial = mapping.split(':')
         station_mappings[station_code] = {
             'cube_name': cube_name,
