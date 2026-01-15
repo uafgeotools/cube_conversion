@@ -1,24 +1,25 @@
 cube_conversion
 ===============
 
-This command-line tool converts [DiGOS](https://digos.eu/) DATA-CUBE<sup>3</sup>
-files into miniSEED files of a desired length of time with specified metadata.
-Output miniSEED files have units of Pa, unless the user selects to export the files in
-a form suitable for submission to EarthScope (formerly IRIS). A script to produce
-StationXML files is also provided, which is useful for EarthScope uploads. The tool
-can differentiate between channels for 3 channel DATA-CUBE<sup>3</sup> files and
-optionally extract coordinates from the digitizer's GPS. The code only looks for
-files from digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore,
-this file must be updated if pairings change or new pairings are added. The user
-can specify a custom "breakout box factor" for setups that modify the signal
-voltage via a voltage divider. This tool is currently only set up for conversion
-of infrasound data, but future updates will accommodate seismic as well.
+These command-line tools convert [DiGOS](https://digos.eu/) DATA-CUBE³ files into
+miniSEED files of a desired length of time with specified metadata, and produce
+validated StationXML files containing deployment, sensor, and digitizer information
+including sensor responses adjusted for individual sensor sensitivities. Output miniSEED
+files have units of Pa, unless the user selects to export the files in a form suitable
+for submission to EarthScope (formerly IRIS) — namely, integer counts. The miniSEED
+conversion tool can differentiate between channels for 3 channel DATA-CUBE³ files and
+optionally extract coordinates from the digitizer's GPS. The code only looks for files
+from digitizers defined in the `digitizer_sensor_pairs.json` file. Therefore, this file
+must be updated if pairings change or new pairings are added. The user can specify a
+custom "breakout box factor" for setups that modify the signal voltage via a voltage
+divider. This tool is currently only set up for conversion of infrasound data, but
+future updates could accommodate seismic as well.
 
 Installation
 ------------
 
 It's recommended that you run this script within a new or pre-existing
-[conda](https://docs.conda.io/projects/conda/en/latest/index.html) environment.
+[conda](https://docs.conda.io/projects/conda/en/stable/) environment.
 (If you choose the latter option, ensure that your environment contains all of
 the packages listed in the [Dependencies](#dependencies) section.)
 
@@ -79,9 +80,15 @@ Supplemental files
 Usage
 -----
 
-To print the conversion script's help menu, execute the following terminal commands:
+To run either command-line tool first activate your conda environment, e.g.,
 ```
 conda activate uafinfra  # Or your pre-existing env
+```
+
+## `cube_convert`
+
+To print the conversion script's help menu, run:
+```
 cube_convert --help  # Or: python /path/to/cube_conversion/cube_convert.py --help
 ```
 The help menu is shown below.
@@ -124,6 +131,40 @@ means "convert all files in the subdirectories of `~/data/raw/` and place in
 **01**, and an automatically determined channel code, dividing the sensitivity
 by 4.5 and extracting coordinates from the digitizer's GPS."
 
+## `cube_stationxml`
+
+To print the StationXML generation script's help menu, run:
+```
+cube_stationxml --help  # Or: python /path/to/cube_conversion/cube_stationxml.py --help
+```
+The help menu is shown below.
+```
+usage: cube_stationxml [-h] [--nrl-path NRL_PATH] [--validate]
+                       input_dir station_mapping [station_mapping ...] output_filename
+
+Generate StationXML files from DATA-CUBE³ miniSEED files and metadata.
+
+positional arguments:
+  input_dir            directory containing miniSEED files and coordinate files produced
+                       by cube_convert
+  station_mapping      one or more mappings of the form
+                       STATION_CODE:CUBE_NAME:SENSOR_SERIAL, for example UAF1:AVJ:903V2
+  output_filename      filename for the output StationXML file (full path)
+
+options:
+  -h, --help           show this help message and exit
+  --nrl-path NRL_PATH  path to local copy of the NRL (if not provided, uses online NRL)
+  --validate           run the IRIS StationXML validator on the output file
+```
+For example, the command
+```
+cube_stationxml ~/data/miniseed/ UAF1:B52:903V2 ~/data/station.xml --validate
+```
+means "process all miniSEED files in `~/data/miniseed/` assuming that station **UAF1**
+consisted of DATA-CUBE³ **B52** connected to sensor serial number **903V2**, and output
+a StationXML file to `~/data/station.xml`, validating the output file with the IRIS
+StationXML validator."
+
 A note on SEED band codes
 -------------------------
 
@@ -149,7 +190,7 @@ letter of the channel code; e.g., the "B" in "BDF".
 | R         | Extremely long-period  | ≥ 0.0001 to < 0.001 |                   |
 
 Note that the band code depends on both the sample rate of the digitizer and
-the corner period of the sensor. In `cube_convert.py` we allow for "B", "H", or
+the corner period of the sensor. In `cube_convert` we allow for "B", "H", or
 "C", which covers a range of sample rates from 10 to 1000 Hz, all for corner
 periods of 10 s or greater. While this covers most infrasound sensors, please
 confirm that your digitizer sample rate and sensor corner period fit into the
