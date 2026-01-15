@@ -220,8 +220,8 @@ def main():
             datalogger_keys=[
                 _DATALOGGER_MANUFACTURER[option_ind],
                 _DATALOGGER_MODEL[option_ind],
-                str(GAIN),
-                str(sample_rate),
+                f'{GAIN:g}',
+                f'{sample_rate:g}',
             ],
         )
         # KEY: Add a response stage which applies the breakout box factor, after first
