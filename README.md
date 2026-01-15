@@ -93,33 +93,32 @@ cube_convert --help  # Or: python /path/to/cube_conversion/cube_convert.py --hel
 ```
 The help menu is shown below.
 ```
-usage: cube_convert [-h] [-v] [--grab-gps]
-                    [--bob-factor BREAKOUT_BOX_FACTOR] [--earthscope]
+usage: cube_convert [-h] [-v] [--grab-gps] [--bob-factor BREAKOUT_BOX_FACTOR]
+                    [--earthscope]
                     input_dir [input_dir ...] output_dir network station
                     {01,02,03,04,AUTO} {AUTO,BDF,HDF,CDF}
 
-Convert DATA-CUBE files to miniSEED files while trimming, adding metadata, and
-renaming. Optionally extract coordinates from digitizer GPS.
+Convert DATA-CUBE files to miniSEED files while trimming, adding metadata, and renaming.
+Optionally extract coordinates from digitizer GPS.
 
 positional arguments:
-  input_dir             one or more directories containing raw DATA-CUBE files
-                        (all files must originate from a single digitizer)
-                        [wildcards (*) supported]
+  input_dir             one or more directories containing raw DATA-CUBE files (all files
+                        must originate from a single digitizer) [wildcards (*) supported]
   output_dir            directory for output miniSEED and GPS-related files
   network               desired SEED network code (2 characters, A-Z)
   station               desired SEED station code (3-5 characters, A-Z & 0-9)
-  {01,02,03,04,AUTO}    desired SEED location code (if AUTO, choose
-                        automatically for 3 channel DATA-CUBE files)
-  {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine
-                        automatically using SEED convention [preferred])
+  {01,02,03,04,AUTO}    desired SEED location code (if AUTO, choose automatically for 3
+                        channel DATA-CUBE files)
+  {AUTO,BDF,HDF,CDF}    desired SEED channel code (if AUTO, determine automatically using
+                        SEED convention [preferred])
 
 options:
   -h, --help            show this help message and exit
   -v, --verbose         enable verbosity for GIPPtools commands
   --grab-gps            additionally extract coordinates from digitizer GPS
   --bob-factor BREAKOUT_BOX_FACTOR
-                        factor by which to divide sensitivity values (for
-                        custom breakout boxes [4.5 for UAF DATA-CUBEs])
+                        factor by which to divide sensitivity values (for custom breakout
+                        boxes [4.5 for UAF DATA-CUBEs])
   --earthscope          format miniSEED files for EarthScope (formerly IRIS) data upload
 ```
 For example, the command
