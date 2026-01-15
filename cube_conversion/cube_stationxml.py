@@ -204,26 +204,48 @@ def main():
         # Access the NRL to get response information. If the user provided a local path
         # to the NRL, use that; otherwise, use the online NRL.
         if nrl_path is not None:
-            nrl = NRL(nrl_path)
-            option_ind = 0  # Use v2 NRL entries
+            nrl = NRL(str(nrl_path))
+            lp_corner = list(nrl.sensors[_SENSOR_MANUFACTURER[0]][sensor_model])
+            assert len(lp_corner) == 1, 'Multiple low-pass corner options found!'
+            lp_corner = lp_corner[0]
+            hf_corner = list(
+                nrl.sensors[_SENSOR_MANUFACTURER[0]][sensor_model][lp_corner]
+            )
+            assert len(hf_corner) == 1, 'Multiple high-pass corner options found!'
+            hf_corner = hf_corner[0]
+            sensor_keys = [_SENSOR_MANUFACTURER[0], sensor_model, lp_corner, hf_corner]
+            datalogger_keys = [
+                _DATALOGGER_MANUFACTURER[0],
+                _DATALOGGER_MODEL[0],
+                f'{GAIN:g}',
+                f'{sample_rate:g} Hz',
+            ]
         else:
             nrl = NRL()
-            option_ind = 1  # Use v1 NRL entries
+            sensor_keys = [_SENSOR_MANUFACTURER[1], sensor_model]
+            datalogger_keys = [
+                _DATALOGGER_MANUFACTURER[1],
+                _DATALOGGER_MODEL[1],
+                f'{GAIN:g}',
+                f'{sample_rate:g}',
+            ]
         # The contents of the NRL can be explored interactively in a Python prompt, see
         # API documentation of NRL submodule:
         # http://docs.obspy.org/packages/obspy.clients.nrl.html
         # Here we assume that the end point of data logger and sensor are already known.
 
         # Get the nominal response for this combination of sensor and digitizer
-        response = nrl.get_response(
-            sensor_keys=[_SENSOR_MANUFACTURER[option_ind], sensor_model],
-            datalogger_keys=[
-                _DATALOGGER_MANUFACTURER[option_ind],
-                _DATALOGGER_MODEL[option_ind],
-                f'{GAIN:g}',
-                f'{sample_rate:g}',
-            ],
-        )
+        try:
+            response = nrl.get_response(
+                sensor_keys=sensor_keys, datalogger_keys=datalogger_keys
+            )
+        except KeyError as e:
+            msg = (
+                f'Could not find response in NRL for sensor keys {sensor_keys} and '
+                f'datalogger keys {datalogger_keys}.'
+                f'\n\n{nrl.sensors[sensor_keys[0]]}'
+            )
+            raise Exception(msg) from e
         # KEY: Add a response stage which applies the breakout box factor, after first
         # stage (i.e., right after Pa --> V) — this should be a PZ stage, see:
         # https://docs.fdsn.org/projects/stationxml/en/latest/reference.html#response-stage
