@@ -29,7 +29,14 @@ packages, execute the following terminal command:
 conda create -n uafinfra -c conda-forge obspy
 ```
 This creates a new environment called `uafinfra` with ObsPy and its dependencies
-installed.
+installed. **Note:** if you intend to run the StationXML generation tool
+(`cube_stationxml`), you must install development ObsPy (after activating your target
+environment) via:
+```
+pip install git+https://github.com/obspy/obspy.git
+```
+Once ObsPy 1.5.0 is released, this step will no longer be necessary. See the docstring
+at the top of `cube_stationxml.py` for more information.
 
 You must also install GIPPtools and add it to your path as described in the
 [Dependencies](#dependencies) section.
