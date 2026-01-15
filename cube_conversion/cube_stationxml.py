@@ -265,7 +265,9 @@ def main():
     inv.networks.append(net)
 
     # Write to StationXML file
-    output_filename = Path(output_filename.rstrip('.xml') + '.xml').absolute()
+    output_filename = Path(
+        input_args.output_filename.rstrip('.xml') + '.xml'
+    ).absolute()
     inv.write(output_filename, format='stationxml', validate=True)
     print(f'Wrote StationXML file to {output_filename}\n')
 
