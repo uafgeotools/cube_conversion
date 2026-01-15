@@ -191,13 +191,13 @@ def main():
         cha = Channel(
             code=channel_code,
             location_code=location_code,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=latitude,  # Could be different if multi-channel setup!
+            longitude=longitude,  # Could be different if multi-channel setup!
             elevation=elevation,
             depth=0,  # Required, always 0?
             sample_rate=sample_rate,
-            start_date=station_starttime,
-            end_date=station_endtime,
+            start_date=station_starttime,  # Could be different if multi-channel setup!
+            end_date=station_endtime,  # Could be different if multi-channel setup!
             sensor=sensor,
             data_logger=data_logger,
         )
