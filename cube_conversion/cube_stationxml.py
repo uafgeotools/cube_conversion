@@ -142,6 +142,18 @@ def main():
     inv = Inventory()
     net = Network(code=network_code)
     for station in station_codes:
+
+        # Get info about this station from mappings and sensor info
+        serial_number = station_mappings[station]['sensor_serial']
+        cube_name = station_mappings[station]['cube_name']
+        sensor_model = sensor_info[serial_number]['model']
+        print('\n------------------------------')
+        print(f'{network_code}.{station}')
+        print('------------------------------')
+        print(f'Cube name: {cube_name}')
+        print(f'Sensor serial number: {serial_number}')
+        print(f'Sensor model: {sensor_model}')
+
         # Get station start and end times, SEED channel code, sample rate...
         st_station = st.select(station=station)
         station_starttime = min(tr.stats.starttime for tr in st_station)
@@ -181,8 +193,6 @@ def main():
             end_date=station_endtime,
         )
         # Define sensor Equipment object
-        serial_number = station_mappings[station]['sensor_serial']
-        sensor_model = sensor_info[serial_number]['model']
         sensor = Equipment(
             type='Infrasound sensor',
             description=f'{_SENSOR_MANUFACTURER[0]} {sensor_model}',  # MDA shows this!
@@ -191,7 +201,6 @@ def main():
             serial_number=serial_number,
         )
         # Define digitizer Equipment object
-        cube_name = station_mappings[station]['cube_name']
         data_logger = Equipment(
             type='Digitizer',
             manufacturer=_DATALOGGER_MANUFACTURER[0],
@@ -284,8 +293,9 @@ def main():
         measured_frequency = sensor_info[serial_number]['frequency']
         response.response_stages[0].stage_gain = measured_sensitivity
         response.response_stages[0].stage_gain_frequency = measured_frequency
-        print(f'{station}: {nominal_sensitivity} --> {measured_sensitivity} V/Pa')
-        print(f'{station}: {nominal_frequency:.2f} --> {measured_frequency:.2f} Hz')
+        print('Updated sensor sensitivity:')
+        print(f'\t{nominal_sensitivity} --> {measured_sensitivity} V/Pa')
+        print(f'\t{nominal_frequency:.2f} --> {measured_frequency:.2f} Hz')
         # KEY: Recalculate overall sensitivity (at the calibration frequency)
         response.recalculate_overall_sensitivity(frequency=measured_frequency)
 
@@ -304,7 +314,7 @@ def main():
         input_args.output_filename.rstrip('.xml') + '.xml'
     ).absolute()
     inv.write(output_filename, format='stationxml', validate=True)
-    print(f'Wrote StationXML file to {output_filename}\n')
+    print(f'\nWrote StationXML file to {output_filename}\n')
 
 
 # Run the main function if this is called as a script
