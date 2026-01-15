@@ -346,7 +346,10 @@ def main():
             )
             print('...done. Running command:')
         args = ['java', '-jar', jar_file_path, output_filename]
-        print('\n' + ' '.join([str(arg) for arg in args]) + '\n')
+        print('\t' + ' '.join([str(arg) for arg in args]))
+        print('------------------------------')
+        print('Output from validator')
+        print('------------------------------')
         process = subprocess.run(args, capture_output=True, text=True)
         if process.stderr:  # Something went wrong!
             print_red(process.stderr.strip())
