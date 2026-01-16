@@ -84,11 +84,12 @@ Supplemental files
 * `sensor_sensitivities.json` — Infrasound sensor model, sensitivity in V/Pa,
   and frequency of sensitivity measurement in Hz
 
-To use `cube_stationxml`, you also must have a local copy of the Nominal Response
-Library (NRL) downloaded. It can be obtained by following the instructions
+For `cube_stationxml`, you may optionally use a local copy of the Nominal Response
+Library (NRL). It can be obtained by following the instructions
 [here](https://ds.iris.edu/ds/nrl/). Be sure to unzip the downloaded file to create an
 `NRL/` directory. **Note:** Obviously, since this is offline, you may need to update
-your local copy if a key response change is made, or if a new sensor is added!
+your local copy if a key response change is made, or if a new sensor is added! Hence,
+we recommend only using this local copy option if you're working offline.
 
 Usage
 -----
@@ -151,32 +152,32 @@ cube_stationxml --help  # Or: python /path/to/cube_conversion/cube_stationxml.py
 ```
 The help menu is shown below.
 ```
-usage: cube_stationxml [-h] [--validate]
+usage: cube_stationxml [-h] [--nrl-path NRL_PATH] [--validate]
                        input_dir station_mapping [station_mapping ...] output_filename
-                       nrl_path
 
 Generate StationXML files from DATA-CUBE³ miniSEED files and metadata.
 
 positional arguments:
-  input_dir        directory containing miniSEED files and coordinate files produced
-                   by cube_convert
-  station_mapping  one or more mappings of the form
-                   STATION_CODE:CUBE_NAME:SENSOR_SERIAL, for example UAF1:AVJ:903V2
-  output_filename  filename for the output StationXML file (full path)
-  nrl_path         path to local copy of the NRL (Nominal Response Library) directory
+  input_dir            directory containing miniSEED files and coordinate files produced
+                       by cube_convert
+  station_mapping      one or more mappings of the form
+                       STATION_CODE:CUBE_NAME:SENSOR_SERIAL, for example UAF1:AVJ:903V2
+  output_filename      filename for the output StationXML file (full path)
 
 options:
-  -h, --help       show this help message and exit
-  --validate       run the IRIS StationXML validator on the output file
+  -h, --help           show this help message and exit
+  --nrl-path NRL_PATH  path to local copy of the NRL (Nominal Response Library)
+                       directory, if not provided makes web services call
+  --validate           run the IRIS StationXML validator on the output file
 ```
 For example, the command
 ```
-cube_stationxml ~/data/miniseed/ UAF1:B52:903V2 ~/data/station.xml ~/NRL/ --validate
+cube_stationxml ~/data/miniseed/ UAF1:B52:903V2 ~/data/station.xml --validate
 ```
 means "process all miniSEED files in `~/data/miniseed/` assuming that station **UAF1**
 consisted of DATA-CUBE³ **B52** connected to sensor serial number **903V2**, and output
-a StationXML file to `~/data/station.xml`, using the local copy of the NRL at `~/NRL/`,
-and validating the output file with the IRIS StationXML validator."
+a StationXML file to `~/data/station.xml`, validating the output file with the IRIS
+StationXML validator."
 
 A note on SEED band codes
 -------------------------

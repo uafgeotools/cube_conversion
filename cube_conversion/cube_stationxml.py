@@ -24,10 +24,12 @@ import json
 import os
 import subprocess
 import warnings
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from urllib.request import urlretrieve
 
-from obspy import Stream, read
+import requests
+from obspy import Stream, read, read_inventory
 from obspy.clients.nrl import NRL
 from obspy.core.inventory import (
     Channel,
@@ -51,6 +53,9 @@ BOB_FACTOR = 10  # Breakout box factor for DATA-CUBE³s (this should usually be 
 _SENSOR_MANUFACTURER = 'Chaparral'
 _DATALOGGER_MANUFACTURER = 'DiGOSOmnirecs'
 _DATALOGGER_MODEL = 'DataCube'
+
+# Base url for all NRL web service queries
+_BASE_URL = 'https://service.iris.edu/irisws/nrl/1/'
 
 # Ignore warning about Pa units
 warnings.filterwarnings(
@@ -81,8 +86,9 @@ def main():
         'output_filename', help='filename for the output StationXML file (full path)'
     )
     parser.add_argument(
-        'nrl_path',
-        help='path to local copy of the NRL (Nominal Response Library) directory',
+        '--nrl-path',
+        default=None,
+        help='path to local copy of the NRL (Nominal Response Library) directory, if not provided makes web services call',
     )
     parser.add_argument(
         '--validate',
@@ -105,11 +111,15 @@ def main():
             'sensor_serial': sensor_serial,
         }
 
-    # Check if NRL path is a directory
-    nrl_path = Path(input_args.nrl_path).expanduser().absolute()
-    if not nrl_path.is_dir():
-        raise NotADirectoryError(f'NRL path {nrl_path} is not a directory!')
-    print(f'Using local copy of NRL at `{nrl_path}{os.sep}`')
+    # Check if NRL path is a directory if provided
+    nrl_path = input_args.nrl_path
+    if nrl_path is not None:
+        nrl_path = Path(input_args.nrl_path).expanduser().absolute()
+        if not nrl_path.is_dir():
+            raise NotADirectoryError(
+                f'NRL path `{nrl_path}{os.sep}` is not a directory!'
+            )
+        print(f'Using local copy of NRL at `{nrl_path}{os.sep}`')
 
     # Find root directory for cube_conversion repo
     root_dir = Path(__file__).parents[1]
@@ -220,38 +230,68 @@ def main():
             sensor=sensor,
             data_logger=data_logger,
         )
-        # Access the local NRL to get response information
-        nrl = NRL(str(nrl_path))
-        lp_corner = list(nrl.sensors[_SENSOR_MANUFACTURER][sensor_model])
-        assert len(lp_corner) == 1, 'Multiple low-pass corner options found!'
-        lp_corner = lp_corner[0]
-        hf_corner = list(nrl.sensors[_SENSOR_MANUFACTURER][sensor_model][lp_corner])
-        assert len(hf_corner) == 1, 'Multiple high-pass corner options found!'
-        hf_corner = hf_corner[0]
-        sensor_keys = [_SENSOR_MANUFACTURER, sensor_model, lp_corner, hf_corner]
-        datalogger_keys = [
-            _DATALOGGER_MANUFACTURER,
-            _DATALOGGER_MODEL,
-            f'{GAIN:g}',
-            f'{sample_rate:g} Hz',
-        ]
-        # The contents of the NRL can be explored interactively in a Python prompt, see
-        # API documentation of NRL submodule:
-        # http://docs.obspy.org/packages/obspy.clients.nrl.html
-        # Here we assume that the end point of data logger and sensor are already known.
+        # Access the NRL to get response information. If the user provided a local path
+        # to the NRL, use that; otherwise, use the NRL web service (requires network
+        # connection).
+        if nrl_path is not None:
+            nrl = NRL(str(nrl_path))
+            lp_corner = list(nrl.sensors[_SENSOR_MANUFACTURER][sensor_model])
+            assert len(lp_corner) == 1, 'Multiple low-pass corner options found!'
+            lp_corner = lp_corner[0]
+            hf_corner = list(nrl.sensors[_SENSOR_MANUFACTURER][sensor_model][lp_corner])
+            assert len(hf_corner) == 1, 'Multiple high-pass corner options found!'
+            hf_corner = hf_corner[0]
+            sensor_keys = [_SENSOR_MANUFACTURER, sensor_model, lp_corner, hf_corner]
+            datalogger_keys = [
+                _DATALOGGER_MANUFACTURER,
+                _DATALOGGER_MODEL,
+                f'{GAIN:g}',
+                f'{sample_rate:g} Hz',
+            ]
+            # The contents of the NRL can be explored interactively in a Python prompt, see
+            # API documentation of NRL submodule:
+            # http://docs.obspy.org/packages/obspy.clients.nrl.html
+            # Here we assume that the end point of data logger and sensor are already known.
 
-        # Get the nominal response for this combination of sensor and digitizer
-        try:
-            response = nrl.get_response(
-                sensor_keys=sensor_keys, datalogger_keys=datalogger_keys
+            # Get the nominal response for this combination of sensor and digitizer
+            try:
+                response = nrl.get_response(
+                    sensor_keys=sensor_keys, datalogger_keys=datalogger_keys
+                )
+            except KeyError as e:
+                msg = (
+                    f'Could not find response in NRL for sensor keys {sensor_keys} and '
+                    f'datalogger keys {datalogger_keys}.'
+                    f'\n\n{nrl.sensors[sensor_keys[0]]}'
+                )
+                raise Exception(msg) from e
+        else:  # Use NRL web service
+            # (1) Locate the `instconfig` for the Chaparral Physics sensor
+            params_catalog = dict(
+                element='sensor',
+                manufacturer=_SENSOR_MANUFACTURER,
+                model=sensor_model,
+                format='xml',
+                level='configuration',
             )
-        except KeyError as e:
-            msg = (
-                f'Could not find response in NRL for sensor keys {sensor_keys} and '
-                f'datalogger keys {datalogger_keys}.'
-                f'\n\n{nrl.sensors[sensor_keys[0]]}'
+            response = requests.get(url=_BASE_URL + 'catalog', params=params_catalog)
+            root = ET.fromstring(response.text)
+            sensor_instconfigs = [element.text for element in root.iter('instconfig')]
+            assert len(sensor_instconfigs) == 1, 'Multiple instrument configs found!'
+            sensor_instconfig = sensor_instconfigs[0]
+            # (2) Define the `instconfig` for the DiGOS DATA-CUBE³ digitizer (easy!)
+            digitizer_instconfig = f'datalogger_{_DATALOGGER_MANUFACTURER}_{_DATALOGGER_MODEL}_PG{GAIN:g}_FR{sample_rate:g}'
+            # (3) Combine the two `instconfig` responses into a single StationXML response
+            params_combine = dict(
+                instconfig=':'.join([sensor_instconfig, digitizer_instconfig]),
+                format='stationxml',
             )
-            raise Exception(msg) from e
+            request = requests.Request(
+                'GET', url=_BASE_URL + 'combine', params=params_combine
+            )
+            stationxml_url = request.prepare().url
+            # (4) Read the combined StationXML response into ObsPy
+            response = read_inventory(stationxml_url)[0][0][0].response
         # KEY: Add a response stage which applies the breakout box factor, after first
         # stage (i.e., right after Pa --> V) — this should be a PZ stage, see:
         # https://docs.fdsn.org/projects/stationxml/en/latest/reference.html#response-stage
