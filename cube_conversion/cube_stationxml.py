@@ -21,6 +21,7 @@ This will fetch and install the newest copy from GitHub.
 
 import argparse
 import json
+import os
 import subprocess
 import warnings
 from pathlib import Path
@@ -108,6 +109,7 @@ def main():
     nrl_path = Path(input_args.nrl_path).expanduser().absolute()
     if not nrl_path.is_dir():
         raise NotADirectoryError(f'NRL path {nrl_path} is not a directory!')
+    print(f'Using local copy of NRL at {nrl_path}{os.sep}')
 
     # Find root directory for cube_conversion repo
     root_dir = Path(__file__).parents[1]
