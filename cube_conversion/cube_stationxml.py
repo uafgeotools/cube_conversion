@@ -109,7 +109,7 @@ def main():
     nrl_path = Path(input_args.nrl_path).expanduser().absolute()
     if not nrl_path.is_dir():
         raise NotADirectoryError(f'NRL path {nrl_path} is not a directory!')
-    print(f'Using local copy of NRL at {nrl_path}{os.sep}')
+    print(f'Using local copy of NRL at `{nrl_path}{os.sep}`')
 
     # Find root directory for cube_conversion repo
     root_dir = Path(__file__).parents[1]
@@ -300,7 +300,7 @@ def main():
         Path(input_args.output_filename.rstrip('.xml') + '.xml').expanduser().absolute()
     )
     inv.write(output_filename, format='stationxml', validate=True)
-    print(f'\nWrote StationXML file to {output_filename}\n')
+    print(f'\nWrote StationXML file to `{output_filename}`\n')
 
     # Download and run the StationXML validator, if user wants to
     if input_args.validate:
@@ -315,9 +315,9 @@ def main():
         # JAR file will downloaded here if it doesn't already exist
         jar_file_path = root_dir / 'stationxml-validator-1.7.5.jar'  # Selects version!
         if jar_file_path.is_file():
-            print(f'Found {jar_file_path.name}. Running command:')
+            print(f'Found `{jar_file_path.name}` — running command:')
         else:
-            print(f'Downloading {jar_file_path.name}...')
+            print(f'Downloading `{jar_file_path.name}`...')
             url_base = 'https://github.com/iris-edu/stationxml-validator/releases/'
             urlretrieve(
                 url_base + f'download/{jar_file_path.stem}/{jar_file_path.name}',
@@ -325,7 +325,9 @@ def main():
             )
             print('...done. Running command:')
         args = ['java', '-jar', jar_file_path, output_filename]
-        print('\t' + ' '.join([str(arg) for arg in args]))
+        print('```')
+        print(' '.join([str(arg) for arg in args]))
+        print('```')
         print('------------------------------')
         print('Output from validator')
         print('------------------------------')
