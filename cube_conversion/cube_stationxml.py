@@ -37,7 +37,6 @@ from obspy.core.inventory import (
     Site,
     Station,
 )
-from obspy.core.util.deprecation_helpers import ObsPyDeprecationWarning
 
 # --------------------------------------------------------------------------------------
 # Advanced configuration options
@@ -46,15 +45,11 @@ GAIN = 1  # DiGOS DATA-CUBE³ amplifier gain (this should usually be 1!)
 BOB_FACTOR = 10  # Breakout box factor for DATA-CUBE³s (this should usually be 10!)
 # --------------------------------------------------------------------------------------
 
-# These names must match EXACTLY what is in the NRL. Unforunately, there are differences
-# between the NRL accessed through ObsPy (via online) versus a local copy of the NRL.
-# These are likely related to NRL v1 versus v2, but it's not clear. I think the v2 ones
-# should be preferred, and they can be viewed here: https://ds.iris.edu/ds/nrl/
-# These show up first in the tuples below, the second entries are for the older NRL v1
-# and we include those just to cover the bases.
-_SENSOR_MANUFACTURER = 'Chaparral', 'Chaparral Physics'
-_DATALOGGER_MANUFACTURER = 'DiGOSOmnirecs', 'DiGOS/Omnirecs'
-_DATALOGGER_MODEL = 'DataCube', 'DATACUBE'
+# These names must match EXACTLY what is in the NRL (v2). See here:
+# https://ds.iris.edu/ds/nrl/
+_SENSOR_MANUFACTURER = 'Chaparral'
+_DATALOGGER_MANUFACTURER = 'DiGOSOmnirecs'
+_DATALOGGER_MODEL = 'DataCube'
 
 # Ignore warning about Pa units
 warnings.filterwarnings(
@@ -62,8 +57,6 @@ warnings.filterwarnings(
     category=UserWarning,
     message="ObsPy can not map unit 'PA' to displacement, velocity, or acceleration",
 )
-# Ignore deprecation warning about accessing the NRL
-warnings.filterwarnings('ignore', category=ObsPyDeprecationWarning)
 
 
 # Define callable main function to work with [project.scripts]
@@ -87,9 +80,8 @@ def main():
         'output_filename', help='filename for the output StationXML file (full path)'
     )
     parser.add_argument(
-        '--nrl-path',
-        default=None,
-        help='path to local copy of the NRL (if not provided, uses online NRL)',
+        'nrl_path',
+        help='path to local copy of the NRL (Nominal Response Library) directory',
     )
     parser.add_argument(
         '--validate',
@@ -112,12 +104,10 @@ def main():
             'sensor_serial': sensor_serial,
         }
 
-    # Check if NRL path is a directory if provided
-    nrl_path = input_args.nrl_path
-    if nrl_path is not None:
-        nrl_path = Path(nrl_path).absolute()
-        if not nrl_path.is_dir():
-            raise NotADirectoryError(f'NRL path {nrl_path} is not a directory!')
+    # Check if NRL path is a directory
+    nrl_path = Path(input_args.nrl_path).expanduser().absolute()
+    if not nrl_path.is_dir():
+        raise NotADirectoryError(f'NRL path {nrl_path} is not a directory!')
 
     # Find root directory for cube_conversion repo
     root_dir = Path(__file__).parents[1]
@@ -202,16 +192,16 @@ def main():
         # Define sensor Equipment object
         sensor = Equipment(
             type='Infrasound sensor',
-            description=f'{_SENSOR_MANUFACTURER[0]} {sensor_model}',  # MDA shows this!
-            manufacturer=_SENSOR_MANUFACTURER[0],
+            description=f'{_SENSOR_MANUFACTURER} {sensor_model}',  # MDA shows this!
+            manufacturer=_SENSOR_MANUFACTURER,
             model=sensor_model,
             serial_number=serial_number,
         )
         # Define digitizer Equipment object
         data_logger = Equipment(
             type='Digitizer',
-            manufacturer=_DATALOGGER_MANUFACTURER[0],
-            model=_DATALOGGER_MODEL[0],
+            manufacturer=_DATALOGGER_MANUFACTURER,
+            model=_DATALOGGER_MODEL,
             serial_number=cube_name,
         )
         # Make Channel object
@@ -228,34 +218,21 @@ def main():
             sensor=sensor,
             data_logger=data_logger,
         )
-        # Access the NRL to get response information. If the user provided a local path
-        # to the NRL, use that; otherwise, use the online NRL.
-        if nrl_path is not None:
-            nrl = NRL(str(nrl_path))
-            lp_corner = list(nrl.sensors[_SENSOR_MANUFACTURER[0]][sensor_model])
-            assert len(lp_corner) == 1, 'Multiple low-pass corner options found!'
-            lp_corner = lp_corner[0]
-            hf_corner = list(
-                nrl.sensors[_SENSOR_MANUFACTURER[0]][sensor_model][lp_corner]
-            )
-            assert len(hf_corner) == 1, 'Multiple high-pass corner options found!'
-            hf_corner = hf_corner[0]
-            sensor_keys = [_SENSOR_MANUFACTURER[0], sensor_model, lp_corner, hf_corner]
-            datalogger_keys = [
-                _DATALOGGER_MANUFACTURER[0],
-                _DATALOGGER_MODEL[0],
-                f'{GAIN:g}',
-                f'{sample_rate:g} Hz',
-            ]
-        else:
-            nrl = NRL()
-            sensor_keys = [_SENSOR_MANUFACTURER[1], sensor_model]
-            datalogger_keys = [
-                _DATALOGGER_MANUFACTURER[1],
-                _DATALOGGER_MODEL[1],
-                f'{GAIN:g}',
-                f'{sample_rate:g}',
-            ]
+        # Access the local NRL to get response information
+        nrl = NRL(str(nrl_path))
+        lp_corner = list(nrl.sensors[_SENSOR_MANUFACTURER][sensor_model])
+        assert len(lp_corner) == 1, 'Multiple low-pass corner options found!'
+        lp_corner = lp_corner[0]
+        hf_corner = list(nrl.sensors[_SENSOR_MANUFACTURER][sensor_model][lp_corner])
+        assert len(hf_corner) == 1, 'Multiple high-pass corner options found!'
+        hf_corner = hf_corner[0]
+        sensor_keys = [_SENSOR_MANUFACTURER, sensor_model, lp_corner, hf_corner]
+        datalogger_keys = [
+            _DATALOGGER_MANUFACTURER,
+            _DATALOGGER_MODEL,
+            f'{GAIN:g}',
+            f'{sample_rate:g} Hz',
+        ]
         # The contents of the NRL can be explored interactively in a Python prompt, see
         # API documentation of NRL submodule:
         # http://docs.obspy.org/packages/obspy.clients.nrl.html
