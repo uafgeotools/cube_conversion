@@ -103,7 +103,7 @@ conda activate uafinfra  # Or your pre-existing env
 
 To print the conversion script's help menu, run:
 ```
-cube_convert --help  # Or: python /path/to/cube_conversion/cube_convert.py --help
+cube_convert --help  # Or: python /path/to/cube_conversion/cube_conversion/cube_convert.py --help
 ```
 The help menu is shown below.
 ```
@@ -148,7 +148,7 @@ by 4.5 and extracting coordinates from the digitizer's GPS."
 
 To print the StationXML generation script's help menu, run:
 ```
-cube_stationxml --help  # Or: python /path/to/cube_conversion/cube_stationxml.py --help
+cube_stationxml --help  # Or: python /path/to/cube_conversion/cube_conversion/cube_stationxml.py --help
 ```
 The help menu is shown below.
 ```
