@@ -80,7 +80,7 @@ Usage
 To print the script's help menu, execute the following terminal commands:
 ```
 conda activate uafinfra  # Or your pre-existing env
-cube_convert --help  # Or: python /path/to/cube_conversion/cube_convert.py --help
+cube_convert --help  # Or: python /path/to/cube_conversion/cube_conversion/cube_convert.py --help
 ```
 The help menu is shown below.
 ```
