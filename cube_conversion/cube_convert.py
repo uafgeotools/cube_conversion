@@ -451,8 +451,8 @@ def main():
         # Plot most common coordinate
         ax.scatter(0, 0, s=180, facecolor='none', edgecolor='black', zorder=3,
                 clip_on=False,
-                label=f'{tuple(output_coords[0:2])}\n'
-                        f'{output_coords[2]} m elevation')
+                label=f'({output_coords[0]}, {output_coords[1]})\n{output_coords[2]} m elevation'
+        )
 
         ax.legend(title='Most common coordinate:')
 
