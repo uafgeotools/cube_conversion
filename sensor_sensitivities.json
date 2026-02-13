@@ -1,18 +1,82 @@
 {
-"SN46" : 0.00902,
-"SN47" : 0.00898,
-"SN48" : 0.00909,
-"SN49" : 0.00904,
-"SN50" : 0.00905,
-"SN51" : 0.00902,
-"SN73" : 0.00898,
-"SN74" : 0.00903,
-"SN80" : 0.00905,
-"SN81" : 0.00898,
-"SN82" : 0.00901,
-"SN83" : 0.00902,
-"SN84" : 0.00902,
-"SN85" : 0.00902,
-"SN86" : 0.00898,
-"SN87" : 0.00903
+    "SN46": {
+        "model": "?",
+        "sensitivity": 0.00902,
+        "frequency": -9999
+    },
+    "SN47": {
+        "model": "?",
+        "sensitivity": 0.00898,
+        "frequency": -9999
+    },
+    "SN48": {
+        "model": "60-UHP",
+        "sensitivity": 0.00909,
+        "frequency": -9999
+    },
+    "SN49": {
+        "model": "60-UHP",
+        "sensitivity": 0.00904,
+        "frequency": -9999
+    },
+    "SN50": {
+        "model": "60-UHP",
+        "sensitivity": 0.00905,
+        "frequency": -9999
+    },
+    "SN51": {
+        "model": "60-UHP",
+        "sensitivity": 0.00902,
+        "frequency": -9999
+    },
+    "SN73": {
+        "model": "?",
+        "sensitivity": 0.00898,
+        "frequency": -9999
+    },
+    "SN74": {
+        "model": "60-UHP",
+        "sensitivity": 0.00903,
+        "frequency": -9999
+    },
+    "SN80": {
+        "model": "?",
+        "sensitivity": 0.00905,
+        "frequency": -9999
+    },
+    "SN81": {
+        "model": "?",
+        "sensitivity": 0.00898,
+        "frequency": -9999
+    },
+    "SN82": {
+        "model": "?",
+        "sensitivity": 0.00901,
+        "frequency": -9999
+    },
+    "SN83": {
+        "model": "?",
+        "sensitivity": 0.00902,
+        "frequency": -9999
+    },
+    "SN84": {
+        "model": "?",
+        "sensitivity": 0.00902,
+        "frequency": -9999
+    },
+    "SN85": {
+        "model": "?",
+        "sensitivity": 0.00902,
+        "frequency": -9999
+    },
+    "SN86": {
+        "model": "?",
+        "sensitivity": 0.00898,
+        "frequency": -9999
+    },
+    "SN87": {
+        "model": "?",
+        "sensitivity": 0.00903,
+        "frequency": -9999
+    }
 }
