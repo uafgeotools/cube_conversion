@@ -1,2 +1,8 @@
 # Ignore PyCharm project settings folder
 .idea/
+
+# Ignore macOS Finder metadata files
+.DS_Store
+
+# Directory that gets created when installing
+/cube_conversion.egg-info/
