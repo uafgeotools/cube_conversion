@@ -327,6 +327,14 @@ def main():
             args.append('--verbose')
         subprocess.call(args)
 
+        # Because overwrite not forced, there may be multiple MSEED files for the same hour (e.g. the hour when data was downloaded)
+        # These files will have a number added before the extension in the filename, i.e. the pattern will be *YYYY.ddd.1.hh
+        # Find all files with an extra digit in the name (if any)
+        same_mseed_list = sorted(glob.glob(os.path.join(input_args.output_dir,'*.???.?.??*')))
+
+        if len(same_mseed_list):
+            print(f'An MSEED file already exists for {len(same_mseed_list)} file(s). It will be merged with the newly created one.')
+
     # Extract digitizer GPS coordinates if requested
     if input_args.grab_gps:
 
