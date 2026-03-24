@@ -319,8 +319,8 @@ def main():
         name_template = (f'{input_args.network}.{input_args.station}'
                         f'.{location_id}.{channel_id}.%Y.%j.%H')
 
-        # Rename cut files and place in output directory
-        args = ['mseedrename', f'--template={name_template}', '--force-overwrite',
+        # Rename cut files and place in output directory - NOTE THAT OVERWRITE IS NOT FORCED HERE
+        args = ['mseedrename', f'--template={name_template}',
                 f'--include-pattern={channel_pattern}', '--transfer-mode=MOVE',
                 f'--output-dir={input_args.output_dir}', file]
         if input_args.verbose:
