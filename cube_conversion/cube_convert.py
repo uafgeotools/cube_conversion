@@ -319,13 +319,40 @@ def main():
         name_template = (f'{input_args.network}.{input_args.station}'
                         f'.{location_id}.{channel_id}.%Y.%j.%H')
 
-        # Rename cut files and place in output directory
-        args = ['mseedrename', f'--template={name_template}', '--force-overwrite',
+        # Rename cut files and place in output directory - NOTE THAT OVERWRITE IS NOT FORCED HERE
+        args = ['mseedrename', f'--template={name_template}',
                 f'--include-pattern={channel_pattern}', '--transfer-mode=MOVE',
                 f'--output-dir={input_args.output_dir}', file]
         if input_args.verbose:
             args.append('--verbose')
         subprocess.call(args)
+
+        # Because overwrite not forced, there may be multiple MSEED files for the same hour (e.g. the hour when data was downloaded)
+        # These files will have a number added before the extension in the filename, i.e. the pattern will be *YYYY.ddd.1.hh
+        # Find all files with an extra digit in the name (if any)
+        same_mseed_list = sorted(glob.glob(os.path.join(input_args.output_dir,'*.???.?.??*')))
+
+        if len(same_mseed_list):
+            print(f'An MSEED file already exists for {len(same_mseed_list)} file(s). It will be merged with the newly created one.')
+
+            # Loop through the files and merge them with the pre-existing mseed (without extra digit)
+            for mseed_file in same_mseed_list:
+                existing_mseed = mseed_file[:-4] + mseed_file[-2:] # Remove the extra digit to recover existing filename
+                
+                print(f'Merging MSEED files for {os.path.basename(existing_mseed)}...')
+
+                # Load both mseed into a Stream object and merge them
+                st = obspy.read(existing_mseed)
+                st += obspy.read(mseed_file)
+                st.split()
+                st.merge(fill_value=0)
+
+                # Save using the exisiting filename (i.e. without extra digit). Overwrites existing file.
+                st.write(existing_mseed, format='MSEED')
+
+                # Remove second MSEED file
+                print(f'Removing duplicate file {os.path.basename(mseed_file)}...')
+                os.remove(mseed_file)
 
     # Extract digitizer GPS coordinates if requested
     if input_args.grab_gps:
