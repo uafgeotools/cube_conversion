@@ -335,6 +335,25 @@ def main():
         if len(same_mseed_list):
             print(f'An MSEED file already exists for {len(same_mseed_list)} file(s). It will be merged with the newly created one.')
 
+            # Loop through the files and merge them with the pre-existing mseed (without extra digit)
+            for mseed_file in same_mseed_list:
+                existing_mseed = mseed_file[:-4] + mseed_file[-2:] # Remove the extra digit to recover existing filename
+                
+                print(f'Merging MSEED files for {os.path.basename(existing_mseed)}...')
+
+                # Load both mseed into a Stream object and merge them
+                st = obspy.read(existing_mseed)
+                st += obspy.read(mseed_file)
+                st.split()
+                st.merge(fill_value=0)
+
+                # Save using the exisiting filename (i.e. without extra digit). Overwrites existing file.
+                st.write(existing_mseed, format='MSEED')
+
+                # Remove second MSEED file
+                print(f'Removing duplicate file {os.path.basename(mseed_file)}...')
+                os.remove(mseed_file)
+
     # Extract digitizer GPS coordinates if requested
     if input_args.grab_gps:
 
