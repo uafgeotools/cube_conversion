@@ -8,3 +8,4 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 cube_convert = "cube_conversion.cube_convert:main"
+cube_stationxml = "cube_conversion.cube_stationxml:main"

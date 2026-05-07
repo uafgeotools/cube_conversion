@@ -6,3 +6,6 @@
 
 # Directory that gets created when installing
 /cube_conversion.egg-info/
+
+# IRIS StationXML validator which may be downloaded
+/stationxml-validator-*.jar

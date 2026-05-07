@@ -161,7 +161,7 @@ def main():
     else:
         sensor = digitizer_sensor_pairs[digitizer]
         try:
-            sensitivity = sensitivities[sensor]
+            sensitivity = sensitivities[sensor]['sensitivity']
         except KeyError:
             warnings.warn('No matching sensitivities. Using default of '
                         f'{DEFAULT_SENSITIVITY} V/Pa.')
